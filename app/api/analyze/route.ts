@@ -505,7 +505,7 @@ Structure JSON exacte requise:
       "suggestions": ["suggestion positive 1"]
     }
   ],
-  "recommandation_visuelle": "Un paragraphe chaleureux de 3-4 phrases, écrit à la première personne (je), personnalisé à cette annonce. SI les photos sont amateur : explique comment des photos professionnelles transformeraient cette annonce, avec une statistique (40% de réservations en plus). SI les photos sont DÉJÀ professionnelles : félicite et propose d'autres pistes d'amélioration visuelle (home staging, photos saisonnières, vidéo, visite virtuelle). Termine par une invitation à échanger."
+  "recommandation_visuelle": "Un paragraphe chaleureux de 3-4 phrases, écrit à la première personne (je), personnalisé à cette annonce. SI les photos sont amateur/smartphone : explique l'impact concret avec ces statistiques — les annonces avec photos professionnelles reçoivent en moyenne 40% de réservations en plus, peuvent augmenter leur tarif à la nuitée de 20 à 30%, et se classent mieux dans les résultats de recherche Airbnb. Mentionne que c'est l'investissement le plus rentable pour un propriétaire. SI les photos sont DÉJÀ professionnelles : félicite, mentionne que ça leur permet de justifier un tarif premium, et propose d'autres pistes (home staging, photos saisonnières, vidéo, visite virtuelle). Termine par une invitation à échanger."
 }
 
 GRILLE DE NOTATION DÉTAILLÉE:
@@ -533,7 +533,7 @@ RAPPEL : tu DOIS analyser les IMAGES que tu reçois. Les photos te sont envoyée
 ENSUITE seulement, donne ton diagnostic :
 
 - SI PROFESSIONNEL : félicite sincèrement ("Vos photos sont d'excellente qualité, on voit le travail d'un professionnel — grand angle maîtrisé, lignes droites, belle lumière"). Note élevée (18-25/25). Ne recommande PAS de refaire les photos. Suggère plutôt : home staging, photos saisonnières, vidéo, visite virtuelle.
-- SI AMATEUR/SMARTPHONE : dis-le explicitement ("Vos photos sont prises au smartphone"). Explique précisément POURQUOI (quels défauts concrets tu vois). Recommande un photographe professionnel et chiffre l'impact ("+40% de réservations"). La première suggestion DOIT être un shooting pro.
+- SI AMATEUR/SMARTPHONE : dis-le explicitement ("Vos photos sont prises au smartphone"). Explique précisément POURQUOI (quels défauts concrets tu vois). Recommande un photographe professionnel et chiffre l'impact : "+40% de réservations en moyenne, et surtout la possibilité d'augmenter votre tarif à la nuitée de 20 à 30% — des photos pro justifient un prix premium aux yeux des voyageurs". La première suggestion DOIT être un shooting pro.
 - SI MIX : identifie lesquelles sont pro et lesquelles sont amateur, recommande de refaire seulement celles qui en ont besoin.
 - Ne mets JAMAIS "semi-pro" par complaisance.
 - Si photos amateur, NE DIS PAS que la couverture est "superbe" — incohérent.
