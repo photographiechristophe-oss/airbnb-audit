@@ -516,16 +516,19 @@ Tu reçois 5 photos échantillonnées à travers la galerie.
 ⚠️ CRITIQUE — TU DOIS ANALYSER LES IMAGES, PAS DEVINER D'APRÈS LE TEXTE.
 Ne déduis JAMAIS la qualité photo du type de bien ou du texte de l'annonce. Un petit appartement simple peut avoir des photos PRO. Une villa de luxe peut avoir des photos SMARTPHONE. Seule l'IMAGE compte.
 
-Pour chaque photo envoyée, vérifie ces 5 points VISUELS :
-1. GRAND ANGLE ? Les pièces paraissent spacieuses, on voit le sol et le plafond, champ de vision large = OUI (pro). Pièces qui paraissent étroites, champ réduit = NON (smartphone).
-2. LIGNES DROITES ? Verticales (murs, portes, fenêtres) et horizontales (plafond, meubles) parfaitement droites = OUI (pro). Lignes penchées, murs qui convergent = NON (smartphone).
-3. LUMIÈRE HOMOGÈNE ? Toute la pièce bien éclairée, pas de zones sombres, pas de surexposition aux fenêtres = OUI (pro). Zones sombres, flash visible, contre-jour = NON (smartphone).
-4. CADRAGE COMPLET ? Meubles entièrement visibles (lit, canapé, table pas coupés), composition pensée = OUI (pro). Meubles tronqués, cadrage approximatif = NON (smartphone).
-5. BALANCE DES BLANCS ? Les murs blancs apparaissent VRAIMENT blancs (pas jaunâtres, pas grisâtres, pas bleutés), couleurs fidèles et neutres = OUI (pro). Dominante jaune/orange ou bleue/grise = NON (smartphone).
+Pour chaque photo envoyée, vérifie ces 5 points VISUELS dans cet ordre PRÉCIS :
 
-RÉSULTAT : 4-5 critères OUI sur la majorité des photos → PROFESSIONNEL (note 18-25/25)
-2-3 critères OUI → SEMI-PRO ou MIX (note 12-17/25)
-0-1 critère OUI → AMATEUR/SMARTPHONE (note 0-11/25)
+1. BALANCE DES BLANCS (critère n°1, le plus révélateur) ? Regarde les murs et plafonds : s'ils sont blancs, apparaissent-ils VRAIMENT blancs dans la photo ? Blancs purs et neutres = PROFESSIONNEL (seul un appareil calibré ou retouché produit des blancs neutres). Dominante jaunâtre, orangée, grisâtre ou bleutée sur les surfaces claires = SMARTPHONE.
+2. GRAND ANGLE ? Les pièces paraissent spacieuses, on voit le sol et le plafond, champ de vision large = PRO. Pièces qui paraissent étroites, champ réduit = SMARTPHONE.
+3. LIGNES DROITES ? Verticales (murs, portes, fenêtres) et horizontales (plafond, meubles) parfaitement droites = PRO. Lignes penchées, murs qui convergent = SMARTPHONE.
+4. LUMIÈRE HOMOGÈNE ? Toute la pièce bien éclairée, pas de zones sombres, pas de surexposition aux fenêtres = PRO. Zones sombres, flash visible, contre-jour = SMARTPHONE.
+5. CADRAGE COMPLET ? Meubles entièrement visibles (lit, canapé, table pas coupés), composition pensée = PRO. Meubles tronqués, cadrage approximatif = SMARTPHONE.
+
+RÉSULTAT : 4-5 critères PRO sur la majorité des photos → PROFESSIONNEL (note 18-25/25)
+2-3 critères PRO → SEMI-PRO ou MIX (note 12-17/25)
+0-1 critère PRO → AMATEUR/SMARTPHONE (note 0-11/25)
+
+RAPPEL : tu DOIS analyser les IMAGES que tu reçois. Les photos te sont envoyées en base64, tu les vois directement. Décris ce que tu VOIS (couleurs des murs, angles, lumière) pour justifier ton diagnostic.
 
 ENSUITE seulement, donne ton diagnostic :
 
@@ -686,10 +689,38 @@ ${scrapedContent}`,
         type: "text",
         text: `\n--- ${label} ---`,
       });
-      userContent.push({
-        type: "image",
-        source: { type: "url", url: photosToAnalyze[i] },
-      });
+
+      // Download photo and send as base64 to guarantee Claude sees it
+      try {
+        const photoRes = await fetch(photosToAnalyze[i], {
+          headers: { "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36" },
+        });
+        if (photoRes.ok) {
+          const buffer = await photoRes.arrayBuffer();
+          const base64 = Buffer.from(buffer).toString("base64");
+          const contentType = photoRes.headers.get("content-type") || "image/jpeg";
+          userContent.push({
+            type: "image",
+            source: {
+              type: "base64",
+              media_type: contentType.split(";")[0],
+              data: base64,
+            },
+          });
+        } else {
+          // Fallback to URL if download fails
+          userContent.push({
+            type: "image",
+            source: { type: "url", url: photosToAnalyze[i] },
+          });
+        }
+      } catch {
+        // Fallback to URL
+        userContent.push({
+          type: "image",
+          source: { type: "url", url: photosToAnalyze[i] },
+        });
+      }
     }
 
     /* Step 3: Call Claude API */
