@@ -3,7 +3,7 @@ import { NextRequest } from "next/server";
 /* ─── Constants ─── */
 const RATE_LIMIT = 2;
 const RATE_WINDOW_MS = 2 * 60 * 60 * 1000; // 2 hours
-const MAX_PHOTOS_TO_ANALYZE = 3;
+const MAX_PHOTOS_TO_ANALYZE = 5;
 const MAX_SCRAPE_TEXT_LENGTH = 8000;
 const MAX_DATA_BLOCK_LENGTH = 15000;
 const ANTHROPIC_MODEL = "claude-sonnet-4-20250514";
@@ -568,14 +568,26 @@ export async function POST(request: NextRequest) {
       await scrapeAirbnb(url);
 
     /* Step 2: Build multimodal content with up to 3 photos */
-    const photosToAnalyze = photoUrls.slice(0, MAX_PHOTOS_TO_ANALYZE);
+    // Sample photos across the gallery: cover + evenly spaced picks
+    // This ensures we see exterior (start), rooms/bedrooms (middle), and amenities (end)
+    const photosToAnalyze: string[] = [];
+    if (photoUrls.length > 0) {
+      photosToAnalyze.push(photoUrls[0]); // Always include cover photo
+      if (photoUrls.length > 1) {
+        const remaining = MAX_PHOTOS_TO_ANALYZE - 1;
+        const step = Math.max(1, Math.floor((photoUrls.length - 1) / remaining));
+        for (let i = step; photosToAnalyze.length < MAX_PHOTOS_TO_ANALYZE && i < photoUrls.length; i += step) {
+          photosToAnalyze.push(photoUrls[i]);
+        }
+      }
+    }
     const userContent: unknown[] = [];
 
     userContent.push({
       type: "text",
       text: `Voici les données extraites de l'annonce Airbnb (${url}).
 NOMBRE EXACT DE PHOTOS SUR L'ANNONCE : ${totalPhotoCount}. UTILISE STRICTEMENT CE CHIFFRE pour la notation, ne l'estime pas toi-même.
-${photosToAnalyze.length > 0 ? `Je t'envoie les ${photosToAnalyze.length} premières photos pour analyse visuelle. Déduis la qualité globale des visuels à partir de cet échantillon.` : "Aucune photo n'a pu être extraite."}
+${photosToAnalyze.length > 0 ? `Je t'envoie ${photosToAnalyze.length} photos échantillonnées à travers toute la galerie (couverture + photos réparties début/milieu/fin) pour avoir une vue représentative. Analyse-les avec un regard très exigeant.` : "Aucune photo n'a pu être extraite."}
 
 Analyse les données ET les photos, puis produis le rapport d'audit JSON complet :
 
@@ -583,9 +595,13 @@ ${scrapedContent}`,
     });
 
     for (let i = 0; i < photosToAnalyze.length; i++) {
+      const photoIndex = photoUrls.indexOf(photosToAnalyze[i]) + 1;
+      const label = i === 0
+        ? `Photo ${photoIndex}/${totalPhotoCount} (couverture)`
+        : `Photo ${photoIndex}/${totalPhotoCount}`;
       userContent.push({
         type: "text",
-        text: `\n--- Photo ${i + 1}${i === 0 ? " (photo de couverture)" : ""} ---`,
+        text: `\n--- ${label} ---`,
       });
       userContent.push({
         type: "image",
