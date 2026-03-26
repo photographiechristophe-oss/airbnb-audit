@@ -474,20 +474,26 @@ Structure JSON exacte requise:
 GRILLE DE NOTATION DÉTAILLÉE:
 
 1. IMPACT VISUEL & PHOTOS (/25):
-Tu reçois 5 photos échantillonnées à travers la galerie. Analyse-les avec un regard de photographe professionnel immobilier. Sois PRÉCIS dans ton diagnostic mais toujours bienveillant dans ta formulation.
+Tu reçois 5 photos échantillonnées à travers la galerie.
 
-COMMENT DISTINGUER AMATEUR vs PROFESSIONNEL :
-- AMATEUR/SMARTPHONE : pièces sombres (surtout chambres), lits/meubles coupés par le cadrage, angles de prise de vue étroits (pas de grand angle), distorsion de perspective, horizon penché, ombres portées du flash, couleurs jaunâtres ou bleutées, bruit/grain visible, reflets dans les miroirs/vitres, objets personnels visibles, photos prises debout (pas à hauteur de poitrine), pièces qui paraissent plus petites qu'en réalité
-- PROFESSIONNEL : grand angle maîtrisé (pièces paraissent spacieuses sans déformation excessive), lumière naturelle abondante et homogène, lignes parfaitement droites (verticales ET horizontales), colorimétrie neutre et chaude, mise en scène soignée, chaque pièce photographiée depuis le meilleur angle, HDR subtil pour équilibrer intérieur/extérieur
+⚠️ ÉTAPE OBLIGATOIRE AVANT DE NOTER : REGARDE CHAQUE PHOTO ATTENTIVEMENT.
+Pour chaque photo, vérifie mentalement ces 4 points :
+1. Grand angle ou pas ? (les pièces paraissent spacieuses = grand angle pro / les pièces paraissent étroites = smartphone)
+2. Lignes droites ? (verticales et horizontales parfaitement droites = pro / horizon penché, murs tordus = smartphone)
+3. Lumière ? (lumière naturelle homogène, bien exposée = pro / zones sombres, flash, contre-jour = smartphone)
+4. Cadrage ? (meubles entièrement dans le cadre = pro / lit coupé, meuble tronqué = smartphone)
 
-RÈGLES SUR LE DIAGNOSTIC PHOTO — SOIS JUSTE ET PRÉCIS :
-- Analyse VRAIMENT les photos envoyées. Ne suppose PAS qu'elles sont amateur par défaut. Regarde les critères concrets : grand angle ? lignes droites ? lumière homogène ? Si OUI → c'est professionnel, dis-le !
-- SI les photos sont professionnelles : félicite sincèrement ("Vos photos sont d'excellente qualité, on sent le travail d'un professionnel"). Note élevée méritée (18-25/25). Ne recommande PAS de refaire les photos.
-- SI les photos sont amateur/smartphone : dis-le explicitement avec les mots "photos prises au smartphone" ou "photos amateur". Explique POURQUOI (pièces sombres, meubles coupés, pas de grand angle, etc.). Recommande un photographe professionnel et chiffre l'impact ("Des photos pro pourraient augmenter vos réservations de 40%").
-- SI c'est un MIX (certaines pro, certaines amateur) : identifie lesquelles sont bonnes et lesquelles à refaire.
-- Ne mets JAMAIS "semi-pro" par complaisance. En cas de doute entre deux niveaux, choisis le PLUS BAS.
-- Si les photos sont amateur, NE DIS PAS que la couverture est "superbe" — c'est contradictoire.
-- Si les photos sont pro, NE DIS PAS qu'elles sont au smartphone — c'est faux et ça discrédite l'outil.
+Si 3 ou 4 critères sont remplis sur la majorité des photos → PROFESSIONNEL
+Si 0 à 2 critères sont remplis → AMATEUR/SMARTPHONE
+
+ENSUITE seulement, donne ton diagnostic :
+
+- SI PROFESSIONNEL : félicite sincèrement ("Vos photos sont d'excellente qualité, on voit le travail d'un professionnel — grand angle maîtrisé, lignes droites, belle lumière"). Note élevée (18-25/25). Ne recommande PAS de refaire les photos. Suggère plutôt : home staging, photos saisonnières, vidéo, visite virtuelle.
+- SI AMATEUR/SMARTPHONE : dis-le explicitement ("Vos photos sont prises au smartphone"). Explique précisément POURQUOI (quels défauts concrets tu vois). Recommande un photographe professionnel et chiffre l'impact ("+40% de réservations"). La première suggestion DOIT être un shooting pro.
+- SI MIX : identifie lesquelles sont pro et lesquelles sont amateur, recommande de refaire seulement celles qui en ont besoin.
+- Ne mets JAMAIS "semi-pro" par complaisance.
+- Si photos amateur, NE DIS PAS que la couverture est "superbe" — incohérent.
+- Si photos pro, NE DIS PAS qu'elles sont au smartphone — c'est FAUX et ça discrédite tout l'audit.
 
 Sous-critères :
 - Nombre total de photos (moins de 10 = à compléter, 10-25 = idéal, 26-35 = léger excès qui dilue l'impact, plus de 35 = trop de photos — les voyageurs se perdent, mieux vaut sélectionner les meilleures): /3
