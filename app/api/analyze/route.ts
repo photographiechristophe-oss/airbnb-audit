@@ -1,11 +1,15 @@
 import { NextRequest } from "next/server";
 
-/* ─── Rate Limiting (in-memory, per IP, 10 req/hour) ─── */
+/* ─── Rate Limiting (2 req / 2 hours, unlimited for owner IP) ─── */
 const rateMap = new Map<string, { count: number; resetAt: number }>();
-const RATE_LIMIT = 10;
-const RATE_WINDOW = 60 * 60 * 1000; // 1 hour
+const RATE_LIMIT = 2;
+const RATE_WINDOW = 2 * 60 * 60 * 1000; // 2 hours
+const OWNER_IPS = (process.env.OWNER_IPS || "").split(",").map((s) => s.trim()).filter(Boolean);
 
 function isRateLimited(ip: string): boolean {
+  // Owner IPs bypass rate limiting
+  if (OWNER_IPS.includes(ip)) return false;
+
   const now = Date.now();
   const entry = rateMap.get(ip);
   if (!entry || now > entry.resetAt) {
