@@ -70,16 +70,15 @@ export function getScoreColor(percent: number): {
 
 /* ─── Photo extraction ─── */
 interface PhotoExtractionResult {
-  /** Photo URLs for visual analysis (broad extraction) */
+  /** Photo URLs for visual analysis */
   analysisUrls: string[];
-  /** Authoritative photo count from JSON-LD (Airbnb's own declaration) */
-  jsonLdCount: number;
+  /** Authoritative photo count from Airbnb's pictureCount field */
+  totalCount: number;
 }
 
 function extractPhotos(html: string): PhotoExtractionResult {
   const seen = new Set<string>();
   const analysisUrls: string[] = [];
-  let jsonLdCount = 0;
 
   const addUrl = (url: string) => {
     const clean = url.split("?")[0];
@@ -90,7 +89,15 @@ function extractPhotos(html: string): PhotoExtractionResult {
     }
   };
 
-  // 1. JSON-LD: authoritative photo count + URLs
+  // --- 1. Authoritative photo count: "pictureCount":XX in Airbnb's inline data ---
+  let pictureCount = 0;
+  const pcMatch = html.match(/"pictureCount"\s*:\s*(\d+)/);
+  if (pcMatch) {
+    pictureCount = parseInt(pcMatch[1], 10);
+  }
+
+  // --- 2. Collect photo URLs for visual analysis ---
+  // 2a. JSON-LD photos
   const jsonLdMatches = html.match(
     /<script type="application\/ld\+json">([\s\S]*?)<\/script>/g
   );
@@ -101,9 +108,7 @@ function extractPhotos(html: string): PhotoExtractionResult {
         .replace(/<\/script>/, "");
       try {
         const parsed = JSON.parse(jsonContent);
-        // photo array is the most reliable source
         if (parsed.photo && Array.isArray(parsed.photo)) {
-          jsonLdCount = parsed.photo.length;
           for (const p of parsed.photo) {
             const u = p.contentUrl || p.url;
             if (u) addUrl(u);
@@ -117,31 +122,30 @@ function extractPhotos(html: string): PhotoExtractionResult {
           }
         }
       } catch {
-        // skip invalid JSON-LD
+        // skip
       }
     }
   }
 
-  // 2. Broad regex fallback: only used if JSON-LD gave us nothing
-  if (analysisUrls.length === 0) {
-    const broadPattern =
-      /https:\/\/a0\.muscache\.com\/im\/(?:pictures|ml-photo-proc)\/[^\s"'<>]+?\.(?:jpeg|jpg|png|webp)/gi;
-    let match;
-    while ((match = broadPattern.exec(html)) !== null) {
-      addUrl(match[0]);
-    }
+  // 2b. Broad regex for muscache.com image URLs
+  const broadPattern =
+    /https:\/\/a0\.muscache\.com\/im\/(?:pictures|ml-photo-proc)\/[^\s"'<>]+?\.(?:jpeg|jpg|png|webp)/gi;
+  let match;
+  while ((match = broadPattern.exec(html)) !== null) {
+    addUrl(match[0]);
+  }
 
-    // Also try inline JSON fields
-    const jsonPhotoPattern =
-      /"(?:baseUrl|url|pictureUrl|picture)":\s*"(https:\/\/a0\.muscache\.com\/im\/[^\s"]+?\.(?:jpeg|jpg|png|webp))/gi;
-    while ((match = jsonPhotoPattern.exec(html)) !== null) {
-      addUrl(match[1]);
-    }
+  // 2c. Inline JSON fields (baseUrl, pictureUrl, etc.)
+  const jsonPhotoPattern =
+    /"(?:baseUrl|pictureUrl|picture)":\s*"(https:\/\/a0\.muscache\.com\/im\/[^\s"]+?\.(?:jpeg|jpg|png|webp))/gi;
+  while ((match = jsonPhotoPattern.exec(html)) !== null) {
+    addUrl(match[1]);
   }
 
   return {
     analysisUrls,
-    jsonLdCount,
+    // Priority: pictureCount > URL count (pictureCount is always accurate)
+    totalCount: pictureCount > 0 ? pictureCount : analysisUrls.length,
   };
 }
 
@@ -319,13 +323,11 @@ async function scrapeAirbnb(url: string): Promise<ScrapeResult> {
       }
 
       if (extractedData.length > 0) {
-        const { analysisUrls, jsonLdCount } = extractPhotos(html);
-        // Use JSON-LD count as authoritative; fall back to extracted URLs count
-        const totalPhotoCount = jsonLdCount > 0 ? jsonLdCount : analysisUrls.length;
+        const { analysisUrls, totalCount } = extractPhotos(html);
         return {
           textContent: extractedData.join("\n\n---\n\n"),
           photoUrls: analysisUrls,
-          totalPhotoCount,
+          totalPhotoCount: totalCount,
         };
       }
     } else {
