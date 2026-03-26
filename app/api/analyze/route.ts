@@ -69,31 +69,28 @@ export function getScoreColor(percent: number): {
 }
 
 /* ─── Photo extraction ─── */
-function extractPhotoUrls(html: string): string[] {
+interface PhotoExtractionResult {
+  /** Photo URLs for visual analysis (broad extraction) */
+  analysisUrls: string[];
+  /** Authoritative photo count from JSON-LD (Airbnb's own declaration) */
+  jsonLdCount: number;
+}
+
+function extractPhotos(html: string): PhotoExtractionResult {
   const seen = new Set<string>();
-  const photoUrls: string[] = [];
+  const analysisUrls: string[] = [];
+  let jsonLdCount = 0;
 
   const addUrl = (url: string) => {
-    // Normalize: strip query params & size suffixes to deduplicate
     const clean = url.split("?")[0];
-    // Extract a unique key: the last path segment (filename)
     const key = clean.replace(/.*\//, "").replace(/\.(jpeg|jpg|png|webp)$/i, "");
     if (key && !seen.has(key)) {
       seen.add(key);
-      photoUrls.push(clean);
+      analysisUrls.push(clean);
     }
   };
 
-  // 1. Broad pattern: any muscache.com image URL with common photo paths
-  //    Covers: /im/pictures/, /im/ml-photo-proc/, /im/pictures/miso/, /im/pictures/hosting/, /im/pictures/prohost-api/, etc.
-  const broadPattern =
-    /https:\/\/a0\.muscache\.com\/im\/(?:pictures|ml-photo-proc)\/[^\s"'<>]+?\.(?:jpeg|jpg|png|webp)/gi;
-  let match;
-  while ((match = broadPattern.exec(html)) !== null) {
-    addUrl(match[0]);
-  }
-
-  // 2. JSON-LD structured data (photo array or image field)
+  // 1. JSON-LD: authoritative photo count + URLs
   const jsonLdMatches = html.match(
     /<script type="application\/ld\+json">([\s\S]*?)<\/script>/g
   );
@@ -104,22 +101,20 @@ function extractPhotoUrls(html: string): string[] {
         .replace(/<\/script>/, "");
       try {
         const parsed = JSON.parse(jsonContent);
-        const images: string[] = [];
+        // photo array is the most reliable source
         if (parsed.photo && Array.isArray(parsed.photo)) {
+          jsonLdCount = parsed.photo.length;
           for (const p of parsed.photo) {
             const u = p.contentUrl || p.url;
-            if (u) images.push(u);
+            if (u) addUrl(u);
           }
         }
         if (parsed.image) {
           const imgArr = Array.isArray(parsed.image) ? parsed.image : [parsed.image];
           for (const img of imgArr) {
             const u = typeof img === "string" ? img : img.url || img.contentUrl;
-            if (u) images.push(u);
+            if (u) addUrl(u);
           }
-        }
-        for (const imgUrl of images) {
-          addUrl(imgUrl);
         }
       } catch {
         // skip invalid JSON-LD
@@ -127,14 +122,27 @@ function extractPhotoUrls(html: string): string[] {
     }
   }
 
-  // 3. Deferred state / inline JSON data blocks may contain photo arrays
-  const jsonPhotoPattern =
-    /"(?:baseUrl|url|pictureUrl|picture)":\s*"(https:\/\/a0\.muscache\.com\/im\/[^\s"]+?\.(?:jpeg|jpg|png|webp))/gi;
-  while ((match = jsonPhotoPattern.exec(html)) !== null) {
-    addUrl(match[1]);
+  // 2. Broad regex fallback: only used if JSON-LD gave us nothing
+  if (analysisUrls.length === 0) {
+    const broadPattern =
+      /https:\/\/a0\.muscache\.com\/im\/(?:pictures|ml-photo-proc)\/[^\s"'<>]+?\.(?:jpeg|jpg|png|webp)/gi;
+    let match;
+    while ((match = broadPattern.exec(html)) !== null) {
+      addUrl(match[0]);
+    }
+
+    // Also try inline JSON fields
+    const jsonPhotoPattern =
+      /"(?:baseUrl|url|pictureUrl|picture)":\s*"(https:\/\/a0\.muscache\.com\/im\/[^\s"]+?\.(?:jpeg|jpg|png|webp))/gi;
+    while ((match = jsonPhotoPattern.exec(html)) !== null) {
+      addUrl(match[1]);
+    }
   }
 
-  return photoUrls;
+  return {
+    analysisUrls,
+    jsonLdCount,
+  };
 }
 
 /* ─── Airbnb Scraper ─── */
@@ -311,11 +319,13 @@ async function scrapeAirbnb(url: string): Promise<ScrapeResult> {
       }
 
       if (extractedData.length > 0) {
-        const photoUrls = extractPhotoUrls(html);
+        const { analysisUrls, jsonLdCount } = extractPhotos(html);
+        // Use JSON-LD count as authoritative; fall back to extracted URLs count
+        const totalPhotoCount = jsonLdCount > 0 ? jsonLdCount : analysisUrls.length;
         return {
           textContent: extractedData.join("\n\n---\n\n"),
-          photoUrls,
-          totalPhotoCount: photoUrls.length,
+          photoUrls: analysisUrls,
+          totalPhotoCount,
         };
       }
     } else {
