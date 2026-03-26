@@ -447,16 +447,24 @@ Structure JSON exacte requise:
 GRILLE DE NOTATION DÉTAILLÉE:
 
 1. IMPACT VISUEL & PHOTOS (/25):
-Tu reçois les 3 premières photos de l'annonce. Analyse-les visuellement avec un oeil de photographe professionnel :
+Tu reçois les 3 premières photos de l'annonce. Analyse-les avec un REGARD TRÈS EXIGEANT de photographe professionnel immobilier.
+
+IMPORTANT - COMMENT DISTINGUER AMATEUR vs PROFESSIONNEL :
+- AMATEUR/SMARTPHONE : pièces sombres (surtout chambres), lits/meubles coupés par le cadrage, angles de prise de vue étroits (pas de grand angle), distorsion de perspective, horizon penché, ombres portées du flash, couleurs jaunâtres ou bleutées, bruit/grain visible, reflets dans les miroirs/vitres, objets personnels visibles, photos prises debout (pas à hauteur de poitrine), pièces qui paraissent plus petites qu'en réalité
+- PROFESSIONNEL : grand angle maîtrisé (pièces paraissent spacieuses sans déformation excessive), lumière naturelle abondante et homogène, lignes parfaitement droites (verticales ET horizontales), colorimétrie neutre et chaude, mise en scène soignée, chaque pièce photographiée depuis le meilleur angle, HDR subtil pour équilibrer intérieur/extérieur
+
+Sois SÉVÈRE : si tu vois ne serait-ce qu'un lit coupé, une pièce sombre, ou un angle de travers, c'est du smartphone amateur. Ne mets PAS "semi-pro" par complaisance.
+
+Sous-critères :
 - Nombre total de photos (moins de 10 = insuffisant, 10-25 = idéal, 26-35 = léger excès qui dilue l'impact, plus de 35 = trop de photos, pénaliser car cela noie le voyageur et montre un manque de sélection): /3
-- Photo de couverture : attractive, donne envie de cliquer, bien cadrée: /4
-- Horizontalité et angles : les lignes sont-elles droites ? L'horizon est-il penché ? Les verticales sont-elles respectées ?: /4
-- Luminosité : lumière naturelle, pas de zones sombres, pas de contre-jour, blanc équilibré: /3
-- Cadrage et composition : bonne utilisation de l'espace, pas d'objets coupés, pas de miroirs avec reflet du photographe: /3
-- Diversité des pièces : les photos montrent-elles des espaces différents ou répètent-elles la même pièce sous des angles similaires ?: /3
-- Mise en scène et propreté : pièces rangées, décoration soignée, pas d'objets personnels encombrants: /3
-- Qualité technique globale : netteté, résolution, absence de bruit/grain, colorimétrie naturelle: /2
-Déduis le niveau général (amateur vs semi-pro vs professionnel) à partir de l'échantillon et extrapole aux autres photos.
+- Photo de couverture : attractive, donne envie de cliquer, bien cadrée, lumineuse: /4
+- Horizontalité et angles : lignes droites, horizon droit, verticales respectées, pas de distorsion smartphone: /4
+- Luminosité : lumière naturelle abondante, pas de zones sombres (chambres notamment), pas de contre-jour, pas de flash visible: /3
+- Cadrage et composition : meubles NON coupés (lits, canapés, tables complets dans le cadre), bonne utilisation de l'espace, pas de reflet du photographe: /3
+- Diversité des pièces : photos d'espaces différents, pas la même pièce sous des angles similaires: /3
+- Mise en scène et propreté : pièces rangées, décoration soignée, pas d'objets personnels: /3
+- Qualité technique globale : netteté, résolution, absence de bruit/grain, colorimétrie naturelle (pas jaunâtre): /2
+Déduis le niveau général (amateur smartphone / semi-pro / professionnel) à partir de l'échantillon. En cas de doute entre deux niveaux, choisis le PLUS BAS.
 
 2. TITRE & ACCROCHE (/15):
 - Clarté et compréhension immédiate du bien: /5

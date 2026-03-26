@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState } from "react";
 import AuditForm from "../components/AuditForm";
 import LoadingSteps from "../components/LoadingSteps";
 import ScoreGauge from "../components/ScoreGauge";
@@ -35,8 +35,6 @@ export default function Home() {
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<AuditResult | null>(null);
   const [error, setError] = useState("");
-  const reportRef = useRef<HTMLDivElement>(null);
-
   const handleAnalyze = async (url: string) => {
     setLoading(true);
     setResult(null);
@@ -182,54 +180,43 @@ export default function Home() {
             paddingBottom: "20px",
           }}
         >
-          {/* Report content (ref for PDF capture) */}
-          <div ref={reportRef}>
-            <div
-              style={{
-                display: "flex",
-                flexDirection: "column",
-                gap: "20px",
-              }}
-            >
-              <ScoreGauge
-                score={result.score_global}
-                title={result.listing_title}
-                location={result.location}
-                propertyType={result.property_type}
-                verdict={result.verdict}
-              />
+          <ScoreGauge
+            score={result.score_global}
+            title={result.listing_title}
+            location={result.location}
+            propertyType={result.property_type}
+            verdict={result.verdict}
+          />
 
-              <ResultCard
-                pointsForts={result.points_forts}
-                pointsCritiques={result.points_critiques}
-              />
+          <ResultCard
+            pointsForts={result.points_forts}
+            pointsCritiques={result.points_critiques}
+          />
 
-              {/* Category header */}
-              <h3
-                style={{
-                  fontSize: "13px",
-                  fontWeight: 700,
-                  letterSpacing: "1.5px",
-                  textTransform: "uppercase" as const,
-                  color: "#A0A0A0",
-                  marginTop: "8px",
-                }}
-              >
-                Détail par catégorie
-              </h3>
+          {/* Category header */}
+          <h3
+            style={{
+              fontSize: "13px",
+              fontWeight: 700,
+              letterSpacing: "1.5px",
+              textTransform: "uppercase" as const,
+              color: "#A0A0A0",
+              marginTop: "8px",
+            }}
+          >
+            Détail par catégorie
+          </h3>
 
-              {result.categories.map((cat, i) => (
-                <CategoryCard key={cat.name} category={cat} index={i} />
-              ))}
+          {result.categories.map((cat, i) => (
+            <CategoryCard key={cat.name} category={cat} index={i} />
+          ))}
 
-              <CTABlock recommandation={result.recommandation_visuelle} />
-            </div>
-          </div>
+          <CTABlock recommandation={result.recommandation_visuelle} />
 
           {/* PDF Download button */}
           <PDFDownload
             listingTitle={result.listing_title}
-            reportRef={reportRef}
+            auditData={result}
           />
 
           {/* Reset button */}

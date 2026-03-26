@@ -1,22 +1,42 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState } from "react";
+
+interface Category {
+  name: string;
+  icon: string;
+  score: number;
+  max: number;
+  detail: string;
+  suggestions: string[];
+}
+
+interface AuditData {
+  listing_title: string;
+  location: string;
+  property_type: string;
+  score_global: number;
+  verdict: string;
+  points_forts: string[];
+  points_critiques: string[];
+  categories: Category[];
+  recommandation_visuelle: string;
+}
 
 interface PDFDownloadProps {
   listingTitle: string;
-  reportRef: React.RefObject<HTMLDivElement | null>;
+  auditData: AuditData;
 }
 
 export default function PDFDownload({
   listingTitle,
-  reportRef,
+  auditData,
 }: PDFDownloadProps) {
   const [showModal, setShowModal] = useState(false);
   const [firstName, setFirstName] = useState("");
   const [email, setEmail] = useState("");
   const [error, setError] = useState("");
   const [generating, setGenerating] = useState(false);
-  const modalRef = useRef<HTMLDivElement>(null);
 
   const handleDownload = async () => {
     setError("");
@@ -25,7 +45,7 @@ export default function PDFDownload({
       setError("Veuillez indiquer votre prénom.");
       return;
     }
-    if (!email.trim() || !email.includes("@")) {
+    if (!email.trim() || !email.includes("@") || !email.includes(".")) {
       setError("Veuillez indiquer un email valide.");
       return;
     }
@@ -44,63 +64,302 @@ export default function PDFDownload({
         }),
       });
 
-      // 2. Generate PDF
-      if (!reportRef.current) {
-        setError("Rapport introuvable.");
-        setGenerating(false);
-        return;
-      }
-
-      const html2canvas = (await import("html2canvas-pro")).default;
+      // 2. Generate PDF with jsPDF directly
       const { jsPDF } = await import("jspdf");
-
-      // Temporarily expand all categories for the PDF
-      const categoryCards = reportRef.current.querySelectorAll(
-        "[data-category-card]"
-      );
-      categoryCards.forEach((card) => {
-        card.setAttribute("data-was-closed", "true");
-        card.dispatchEvent(new CustomEvent("expand-for-pdf"));
-      });
-
-      // Small delay to let React re-render
-      await new Promise((r) => setTimeout(r, 300));
-
-      const canvas = await html2canvas(reportRef.current, {
-        scale: 2,
-        useCORS: true,
-        allowTaint: true,
-        backgroundColor: "#FAFAF8",
-        logging: false,
-        windowWidth: 650,
-      });
-
-      // Collapse categories back
-      categoryCards.forEach((card) => {
-        card.dispatchEvent(new CustomEvent("collapse-after-pdf"));
-      });
-
-      const imgData = canvas.toDataURL("image/jpeg", 0.85);
-      const imgWidth = 210; // A4 width in mm
-      const imgHeight = (canvas.height * imgWidth) / canvas.width;
-
       const pdf = new jsPDF("p", "mm", "a4");
-      let heightLeft = imgHeight;
-      let position = 0;
+      const pageWidth = 210;
+      const margin = 20;
+      const contentWidth = pageWidth - margin * 2;
+      let y = 20;
 
-      // First page
-      pdf.addImage(imgData, "JPEG", 0, position, imgWidth, imgHeight);
-      heightLeft -= 297; // A4 height
+      const checkPageBreak = (needed: number) => {
+        if (y + needed > 280) {
+          pdf.addPage();
+          y = 20;
+        }
+      };
 
-      // Additional pages if needed
-      while (heightLeft > 0) {
-        position -= 297;
-        pdf.addPage();
-        pdf.addImage(imgData, "JPEG", 0, position, imgWidth, imgHeight);
-        heightLeft -= 297;
+      // Helper: add wrapped text
+      const addWrappedText = (
+        text: string,
+        x: number,
+        maxWidth: number,
+        fontSize: number,
+        color: [number, number, number] = [26, 26, 26],
+        style: string = "normal"
+      ) => {
+        pdf.setFontSize(fontSize);
+        pdf.setTextColor(...color);
+        if (style === "bold") {
+          pdf.setFont("helvetica", "bold");
+        } else if (style === "italic") {
+          pdf.setFont("helvetica", "italic");
+        } else {
+          pdf.setFont("helvetica", "normal");
+        }
+        const lines = pdf.splitTextToSize(text, maxWidth);
+        for (const line of lines) {
+          checkPageBreak(fontSize * 0.5);
+          pdf.text(line, x, y);
+          y += fontSize * 0.45;
+        }
+      };
+
+      // --- Header ---
+      pdf.setFillColor(235, 186, 77); // gold
+      pdf.rect(0, 0, pageWidth, 3, "F");
+
+      y = 15;
+      pdf.setFontSize(22);
+      pdf.setFont("helvetica", "bold");
+      pdf.setTextColor(26, 26, 26);
+      pdf.text("Audit Annonce Airbnb", pageWidth / 2, y, {
+        align: "center",
+      });
+      y += 8;
+
+      pdf.setFontSize(10);
+      pdf.setFont("helvetica", "normal");
+      pdf.setTextColor(201, 154, 46); // gold dark
+      pdf.text("par votrephotographeimmo.com", pageWidth / 2, y, {
+        align: "center",
+      });
+      y += 12;
+
+      // --- Score ---
+      const score = auditData.score_global;
+      const scoreColor: [number, number, number] =
+        score >= 75 ? [45, 140, 90] : score >= 50 ? [212, 135, 46] : [179, 58, 58];
+
+      // Score circle
+      pdf.setDrawColor(...scoreColor);
+      pdf.setLineWidth(1.5);
+      pdf.circle(pageWidth / 2, y + 12, 15);
+      pdf.setFontSize(24);
+      pdf.setFont("helvetica", "bold");
+      pdf.setTextColor(...scoreColor);
+      pdf.text(String(score), pageWidth / 2, y + 15, { align: "center" });
+      pdf.setFontSize(8);
+      pdf.setTextColor(160, 160, 160);
+      pdf.text("/ 100", pageWidth / 2, y + 20, { align: "center" });
+      y += 32;
+
+      // Score label
+      const label =
+        score >= 75
+          ? "Excellente annonce"
+          : score >= 50
+            ? "Annonce correcte, peut mieux faire"
+            : "Annonce a optimiser d'urgence";
+      pdf.setFontSize(10);
+      pdf.setFont("helvetica", "bold");
+      pdf.setTextColor(...scoreColor);
+      pdf.text(label, pageWidth / 2, y, { align: "center" });
+      y += 10;
+
+      // Title & info
+      addWrappedText(
+        auditData.listing_title,
+        pageWidth / 2 - contentWidth / 2,
+        contentWidth,
+        14,
+        [26, 26, 26],
+        "bold"
+      );
+      y += 3;
+      addWrappedText(
+        `${auditData.location} - ${auditData.property_type}`,
+        margin,
+        contentWidth,
+        10,
+        [107, 107, 107]
+      );
+      y += 3;
+      addWrappedText(
+        `"${auditData.verdict}"`,
+        margin,
+        contentWidth,
+        10,
+        [42, 42, 42],
+        "italic"
+      );
+      y += 8;
+
+      // --- Points forts / critiques ---
+      checkPageBreak(40);
+      pdf.setFillColor(232, 245, 238); // green bg
+      pdf.roundedRect(margin, y, contentWidth / 2 - 3, 6, 1, 1, "F");
+      pdf.setFontSize(9);
+      pdf.setFont("helvetica", "bold");
+      pdf.setTextColor(45, 140, 90);
+      pdf.text("POINTS FORTS", margin + 3, y + 4.2);
+
+      pdf.setFillColor(253, 236, 236); // red bg
+      pdf.roundedRect(
+        margin + contentWidth / 2 + 3,
+        y,
+        contentWidth / 2 - 3,
+        6,
+        1,
+        1,
+        "F"
+      );
+      pdf.setTextColor(179, 58, 58);
+      pdf.text("POINTS A AMELIORER", margin + contentWidth / 2 + 6, y + 4.2);
+      y += 10;
+
+      const maxPoints = Math.max(
+        auditData.points_forts.length,
+        auditData.points_critiques.length
+      );
+      for (let i = 0; i < maxPoints; i++) {
+        checkPageBreak(6);
+        if (auditData.points_forts[i]) {
+          pdf.setFontSize(8);
+          pdf.setFont("helvetica", "normal");
+          pdf.setTextColor(45, 140, 90);
+          pdf.text("✓", margin + 2, y);
+          pdf.setTextColor(26, 26, 26);
+          const fLines = pdf.splitTextToSize(
+            auditData.points_forts[i],
+            contentWidth / 2 - 12
+          );
+          for (const fl of fLines) {
+            pdf.text(fl, margin + 7, y);
+            y += 4;
+          }
+          y -= 4; // reset for right column
+        }
+        if (auditData.points_critiques[i]) {
+          pdf.setFontSize(8);
+          pdf.setTextColor(179, 58, 58);
+          pdf.text("✗", margin + contentWidth / 2 + 5, y);
+          pdf.setTextColor(26, 26, 26);
+          const cLines = pdf.splitTextToSize(
+            auditData.points_critiques[i],
+            contentWidth / 2 - 12
+          );
+          for (const cl of cLines) {
+            pdf.text(cl, margin + contentWidth / 2 + 10, y);
+            y += 4;
+          }
+        } else {
+          y += 4;
+        }
+        y += 2;
+      }
+      y += 6;
+
+      // --- Categories ---
+      checkPageBreak(10);
+      pdf.setFontSize(9);
+      pdf.setFont("helvetica", "bold");
+      pdf.setTextColor(160, 160, 160);
+      pdf.text("DETAIL PAR CATEGORIE", margin, y);
+      y += 8;
+
+      for (const cat of auditData.categories) {
+        checkPageBreak(35);
+        const pct = (cat.score / cat.max) * 100;
+        const catColor: [number, number, number] =
+          pct >= 70 ? [45, 140, 90] : pct >= 45 ? [212, 135, 46] : [179, 58, 58];
+
+        // Category header
+        pdf.setFontSize(11);
+        pdf.setFont("helvetica", "bold");
+        pdf.setTextColor(26, 26, 26);
+        pdf.text(`${cat.icon} ${cat.name}`, margin, y);
+
+        // Score badge
+        pdf.setFontSize(10);
+        pdf.setFont("helvetica", "bold");
+        pdf.setTextColor(...catColor);
+        pdf.text(`${cat.score}/${cat.max}`, pageWidth - margin, y, {
+          align: "right",
+        });
+        y += 4;
+
+        // Progress bar
+        pdf.setFillColor(224, 224, 224);
+        pdf.roundedRect(margin, y, contentWidth, 2.5, 1, 1, "F");
+        pdf.setFillColor(...catColor);
+        pdf.roundedRect(
+          margin,
+          y,
+          contentWidth * (pct / 100),
+          2.5,
+          1,
+          1,
+          "F"
+        );
+        y += 6;
+
+        // Detail
+        addWrappedText(cat.detail, margin, contentWidth, 9, [42, 42, 42]);
+        y += 3;
+
+        // Suggestions
+        for (const s of cat.suggestions) {
+          checkPageBreak(8);
+          pdf.setFontSize(8);
+          pdf.setFont("helvetica", "normal");
+          pdf.setTextColor(201, 154, 46);
+          pdf.text("→", margin + 2, y);
+          pdf.setTextColor(26, 26, 26);
+          const sLines = pdf.splitTextToSize(s, contentWidth - 8);
+          for (const sl of sLines) {
+            pdf.text(sl, margin + 7, y);
+            y += 3.5;
+          }
+        }
+        y += 6;
       }
 
-      // Sanitize filename
+      // --- CTA block ---
+      checkPageBreak(30);
+      pdf.setFillColor(26, 26, 26);
+      pdf.roundedRect(margin, y, contentWidth, 30, 3, 3, "F");
+      y += 8;
+      pdf.setFontSize(12);
+      pdf.setFont("helvetica", "bold");
+      pdf.setTextColor(235, 186, 77);
+      pdf.text("Boostez vos reservations avec des visuels pro", pageWidth / 2, y, {
+        align: "center",
+      });
+      y += 6;
+      pdf.setFontSize(8);
+      pdf.setFont("helvetica", "normal");
+      pdf.setTextColor(200, 200, 200);
+      const ctaLines = pdf.splitTextToSize(
+        auditData.recommandation_visuelle,
+        contentWidth - 10
+      );
+      for (const cl of ctaLines.slice(0, 4)) {
+        pdf.text(cl, margin + 5, y);
+        y += 3.5;
+      }
+      y += 8;
+
+      // --- Footer ---
+      checkPageBreak(10);
+      pdf.setFontSize(9);
+      pdf.setFont("helvetica", "bold");
+      pdf.setTextColor(201, 154, 46);
+      pdf.text("votrephotographeimmo.com", pageWidth / 2, y, {
+        align: "center",
+      });
+      y += 5;
+      pdf.setFontSize(7);
+      pdf.setFont("helvetica", "normal");
+      pdf.setTextColor(160, 160, 160);
+      pdf.text(
+        "Photographe professionnel en hotellerie & locations saisonnieres - Provence",
+        pageWidth / 2,
+        y,
+        { align: "center" }
+      );
+
+      // Save
       const safeTitle = listingTitle
         .replace(/[^a-zA-Z0-9àâäéèêëïîôùûüÿçÀÂÄÉÈÊËÏÎÔÙÛÜŸÇ\s-]/g, "")
         .trim()
@@ -121,7 +380,6 @@ export default function PDFDownload({
 
   return (
     <>
-      {/* Download button */}
       <button
         onClick={() => setShowModal(true)}
         style={{
@@ -148,10 +406,9 @@ export default function PDFDownload({
           e.currentTarget.style.backgroundColor = "transparent";
         }}
       >
-        📄 Télécharger le rapport PDF
+        Télécharger le rapport PDF
       </button>
 
-      {/* Modal overlay */}
       {showModal && (
         <div
           style={{
@@ -173,7 +430,6 @@ export default function PDFDownload({
           }}
         >
           <div
-            ref={modalRef}
             style={{
               backgroundColor: "#FFFFFF",
               borderRadius: "16px",
@@ -183,23 +439,7 @@ export default function PDFDownload({
               boxShadow: "0 20px 60px rgba(0, 0, 0, 0.15)",
             }}
           >
-            {/* Header */}
             <div style={{ textAlign: "center", marginBottom: "24px" }}>
-              <div
-                style={{
-                  width: "48px",
-                  height: "48px",
-                  borderRadius: "50%",
-                  backgroundColor: "#FDF8EE",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  margin: "0 auto 12px auto",
-                  fontSize: "22px",
-                }}
-              >
-                📄
-              </div>
               <h3
                 style={{
                   fontSize: "20px",
@@ -217,12 +457,11 @@ export default function PDFDownload({
                   lineHeight: 1.5,
                 }}
               >
-                Recevez votre audit complet et nos conseils
-                personnalisés pour booster vos réservations.
+                Recevez votre audit complet et nos conseils personnalisés pour
+                booster vos réservations.
               </p>
             </div>
 
-            {/* Form */}
             <div
               style={{
                 display: "flex",
@@ -349,7 +588,6 @@ export default function PDFDownload({
               </button>
             </div>
 
-            {/* Privacy note */}
             <p
               style={{
                 fontSize: "11px",
