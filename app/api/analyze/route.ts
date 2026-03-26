@@ -70,23 +70,30 @@ export function getScoreColor(percent: number): {
 
 /* ─── Photo extraction ─── */
 function extractPhotoUrls(html: string): string[] {
-  const photoIds = new Set<string>();
+  const seen = new Set<string>();
   const photoUrls: string[] = [];
 
-  // Listing photos: /im/pictures/hosting/Hosting-XXX/original/UUID.jpeg or /im/pictures/UUID.jpg
-  const listingPhotoPattern =
-    /https:\/\/a0\.muscache\.com\/im\/pictures\/(?:hosting\/Hosting-[^/]+\/original\/([a-f0-9-]{36})\.(?:jpeg|jpg|png|webp)|([a-f0-9-]{36})\.(?:jpeg|jpg|png|webp))/g;
-
-  let match;
-  while ((match = listingPhotoPattern.exec(html)) !== null) {
-    const photoId = match[1] || match[2];
-    if (photoId && !photoIds.has(photoId)) {
-      photoIds.add(photoId);
-      photoUrls.push(match[0]);
+  const addUrl = (url: string) => {
+    // Normalize: strip query params & size suffixes to deduplicate
+    const clean = url.split("?")[0];
+    // Extract a unique key: the last path segment (filename)
+    const key = clean.replace(/.*\//, "").replace(/\.(jpeg|jpg|png|webp)$/i, "");
+    if (key && !seen.has(key)) {
+      seen.add(key);
+      photoUrls.push(clean);
     }
+  };
+
+  // 1. Broad pattern: any muscache.com image URL with common photo paths
+  //    Covers: /im/pictures/, /im/ml-photo-proc/, /im/pictures/miso/, /im/pictures/hosting/, /im/pictures/prohost-api/, etc.
+  const broadPattern =
+    /https:\/\/a0\.muscache\.com\/im\/(?:pictures|ml-photo-proc)\/[^\s"'<>]+?\.(?:jpeg|jpg|png|webp)/gi;
+  let match;
+  while ((match = broadPattern.exec(html)) !== null) {
+    addUrl(match[0]);
   }
 
-  // Also check JSON-LD for photos
+  // 2. JSON-LD structured data (photo array or image field)
   const jsonLdMatches = html.match(
     /<script type="application\/ld\+json">([\s\S]*?)<\/script>/g
   );
@@ -97,38 +104,34 @@ function extractPhotoUrls(html: string): string[] {
         .replace(/<\/script>/, "");
       try {
         const parsed = JSON.parse(jsonContent);
-        const images = parsed.photo
-          ? parsed.photo.map(
-              (p: { contentUrl?: string; url?: string }) =>
-                p.contentUrl || p.url
-            )
-          : parsed.image
-            ? (Array.isArray(parsed.image)
-                ? parsed.image
-                : [parsed.image]
-              ).map(
-                (
-                  img: string | { url?: string; contentUrl?: string }
-                ) =>
-                  typeof img === "string"
-                    ? img
-                    : img.url || img.contentUrl
-              )
-            : [];
-        for (const imgUrl of images) {
-          if (!imgUrl) continue;
-          const idMatch = imgUrl.match(
-            /([a-f0-9-]{36})\.(jpeg|jpg|png|webp)/
-          );
-          if (idMatch && !photoIds.has(idMatch[1])) {
-            photoIds.add(idMatch[1]);
-            photoUrls.push(imgUrl);
+        const images: string[] = [];
+        if (parsed.photo && Array.isArray(parsed.photo)) {
+          for (const p of parsed.photo) {
+            const u = p.contentUrl || p.url;
+            if (u) images.push(u);
           }
+        }
+        if (parsed.image) {
+          const imgArr = Array.isArray(parsed.image) ? parsed.image : [parsed.image];
+          for (const img of imgArr) {
+            const u = typeof img === "string" ? img : img.url || img.contentUrl;
+            if (u) images.push(u);
+          }
+        }
+        for (const imgUrl of images) {
+          addUrl(imgUrl);
         }
       } catch {
         // skip invalid JSON-LD
       }
     }
+  }
+
+  // 3. Deferred state / inline JSON data blocks may contain photo arrays
+  const jsonPhotoPattern =
+    /"(?:baseUrl|url|pictureUrl|picture)":\s*"(https:\/\/a0\.muscache\.com\/im\/[^\s"]+?\.(?:jpeg|jpg|png|webp))/gi;
+  while ((match = jsonPhotoPattern.exec(html)) !== null) {
+    addUrl(match[1]);
   }
 
   return photoUrls;
