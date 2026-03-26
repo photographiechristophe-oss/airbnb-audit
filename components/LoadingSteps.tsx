@@ -52,14 +52,14 @@ export default function LoadingSteps() {
     <div
       style={{
         animation: "fadeSlideIn 0.5s ease-out",
-        padding: "40px 0",
+        padding: "20px 0",
       }}
     >
       {/* Percentage */}
-      <div style={{ textAlign: "center", marginBottom: "24px" }}>
+      <div style={{ textAlign: "center", marginBottom: "16px" }}>
         <span
           style={{
-            fontSize: "48px",
+            fontSize: "40px",
             fontWeight: 800,
             color: "#EBBA4D",
             fontFamily: "'Raleway', sans-serif",
@@ -73,18 +73,18 @@ export default function LoadingSteps() {
       <div
         style={{
           width: "100%",
-          height: "8px",
+          height: "6px",
           backgroundColor: "#E0E0E0",
-          borderRadius: "4px",
+          borderRadius: "3px",
           overflow: "hidden",
-          marginBottom: "32px",
+          marginBottom: "20px",
         }}
       >
         <div
           style={{
             width: `${progress}%`,
             height: "100%",
-            borderRadius: "4px",
+            borderRadius: "3px",
             background:
               "linear-gradient(90deg, #EBBA4D, #F5D98A, #EBBA4D)",
             backgroundSize: "200% 100%",
@@ -99,7 +99,7 @@ export default function LoadingSteps() {
         style={{
           display: "flex",
           flexDirection: "column",
-          gap: "8px",
+          gap: "2px",
         }}
       >
         {STEPS.map((step, index) => {
@@ -113,9 +113,9 @@ export default function LoadingSteps() {
               style={{
                 display: "flex",
                 alignItems: "center",
-                gap: "14px",
-                padding: "12px 16px",
-                borderRadius: "10px",
+                gap: "10px",
+                padding: "6px 12px",
+                borderRadius: "8px",
                 backgroundColor: isCurrent ? "#FDF8EE" : "transparent",
                 opacity: isPending ? 0.35 : 1,
                 transition: "all 0.3s ease",
@@ -124,14 +124,14 @@ export default function LoadingSteps() {
               {/* Status circle */}
               <div
                 style={{
-                  width: "28px",
-                  height: "28px",
-                  minWidth: "28px",
+                  width: "22px",
+                  height: "22px",
+                  minWidth: "22px",
                   borderRadius: "50%",
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
-                  fontSize: "14px",
+                  fontSize: "11px",
                   fontWeight: 700,
                   backgroundColor: isDone
                     ? "#2D8C5A"
@@ -148,7 +148,7 @@ export default function LoadingSteps() {
               {/* Step label */}
               <span
                 style={{
-                  fontSize: "15px",
+                  fontSize: "13px",
                   fontWeight: isCurrent ? 600 : 400,
                   color: isDone ? "#2D8C5A" : isCurrent ? "#1A1A1A" : "#A0A0A0",
                 }}
