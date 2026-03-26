@@ -59,6 +59,3 @@ body {
   50% { opacity: 0.5; }
 }
 
-@keyframes scoreReveal {
-  from { stroke-dashoffset: 314; }
-}

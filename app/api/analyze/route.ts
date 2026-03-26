@@ -1,23 +1,71 @@
 import { NextRequest } from "next/server";
 
+/* ─── Constants ─── */
+const RATE_LIMIT = 2;
+const RATE_WINDOW_MS = 2 * 60 * 60 * 1000; // 2 hours
+const MAX_PHOTOS_TO_ANALYZE = 3;
+const MAX_SCRAPE_TEXT_LENGTH = 8000;
+const MAX_DATA_BLOCK_LENGTH = 15000;
+const ANTHROPIC_MODEL = "claude-sonnet-4-20250514";
+const ANTHROPIC_MAX_TOKENS = 16000;
+
+/* ─── CORS ─── */
+const ALLOWED_ORIGINS = [
+  "https://www.votrephotographeimmo.com",
+  "https://votrephotographeimmo.com",
+];
+
+function getCorsHeaders(origin: string): Record<string, string> {
+  const isDev = process.env.NODE_ENV === "development";
+  const corsOrigin =
+    isDev || ALLOWED_ORIGINS.some((o) => origin.startsWith(o))
+      ? origin
+      : ALLOWED_ORIGINS[0];
+  return {
+    "Access-Control-Allow-Origin": corsOrigin,
+    "Access-Control-Allow-Methods": "POST, OPTIONS",
+    "Access-Control-Allow-Headers": "Content-Type",
+  };
+}
+
 /* ─── Rate Limiting (2 req / 2 hours, unlimited for owner IP) ─── */
 const rateMap = new Map<string, { count: number; resetAt: number }>();
-const RATE_LIMIT = 2;
-const RATE_WINDOW = 2 * 60 * 60 * 1000; // 2 hours
-const OWNER_IPS = (process.env.OWNER_IPS || "").split(",").map((s) => s.trim()).filter(Boolean);
+const OWNER_IPS = (process.env.OWNER_IPS || "")
+  .split(",")
+  .map((s) => s.trim())
+  .filter(Boolean);
+
+function cleanupRateMap() {
+  const now = Date.now();
+  for (const [ip, entry] of rateMap) {
+    if (now > entry.resetAt) rateMap.delete(ip);
+  }
+}
 
 function isRateLimited(ip: string): boolean {
-  // Owner IPs bypass rate limiting
   if (OWNER_IPS.includes(ip)) return false;
+
+  // Cleanup expired entries periodically
+  if (rateMap.size > 100) cleanupRateMap();
 
   const now = Date.now();
   const entry = rateMap.get(ip);
   if (!entry || now > entry.resetAt) {
-    rateMap.set(ip, { count: 1, resetAt: now + RATE_WINDOW });
+    rateMap.set(ip, { count: 1, resetAt: now + RATE_WINDOW_MS });
     return false;
   }
   entry.count++;
   return entry.count > RATE_LIMIT;
+}
+
+/* ─── Score color utility ─── */
+export function getScoreColor(percent: number): {
+  color: string;
+  bgColor: string;
+} {
+  if (percent >= 70) return { color: "#2D8C5A", bgColor: "#E8F5EE" };
+  if (percent >= 45) return { color: "#D4872E", bgColor: "#FFF3E0" };
+  return { color: "#B33A3A", bgColor: "#FDECEC" };
 }
 
 /* ─── Photo extraction ─── */
@@ -25,10 +73,9 @@ function extractPhotoUrls(html: string): string[] {
   const photoIds = new Set<string>();
   const photoUrls: string[] = [];
 
-  // Only extract LISTING photos (not Airbnb platform assets, favicons, icons, CSS, etc.)
-  // Listing photos match: /im/pictures/hosting/Hosting-XXX/original/UUID.jpeg
-  // Or: /im/pictures/UUID.jpg (older format)
-  const listingPhotoPattern = /https:\/\/a0\.muscache\.com\/im\/pictures\/(?:hosting\/Hosting-[^/]+\/original\/([a-f0-9-]{36})\.(?:jpeg|jpg|png|webp)|([a-f0-9-]{36})\.(?:jpeg|jpg|png|webp))/g;
+  // Listing photos: /im/pictures/hosting/Hosting-XXX/original/UUID.jpeg or /im/pictures/UUID.jpg
+  const listingPhotoPattern =
+    /https:\/\/a0\.muscache\.com\/im\/pictures\/(?:hosting\/Hosting-[^/]+\/original\/([a-f0-9-]{36})\.(?:jpeg|jpg|png|webp)|([a-f0-9-]{36})\.(?:jpeg|jpg|png|webp))/g;
 
   let match;
   while ((match = listingPhotoPattern.exec(html)) !== null) {
@@ -51,28 +98,39 @@ function extractPhotoUrls(html: string): string[] {
       try {
         const parsed = JSON.parse(jsonContent);
         const images = parsed.photo
-          ? parsed.photo.map((p: { contentUrl?: string; url?: string }) => p.contentUrl || p.url)
+          ? parsed.photo.map(
+              (p: { contentUrl?: string; url?: string }) =>
+                p.contentUrl || p.url
+            )
           : parsed.image
-            ? (Array.isArray(parsed.image) ? parsed.image : [parsed.image]).map(
-                (img: string | { url?: string; contentUrl?: string }) =>
-                  typeof img === "string" ? img : img.url || img.contentUrl
+            ? (Array.isArray(parsed.image)
+                ? parsed.image
+                : [parsed.image]
+              ).map(
+                (
+                  img: string | { url?: string; contentUrl?: string }
+                ) =>
+                  typeof img === "string"
+                    ? img
+                    : img.url || img.contentUrl
               )
             : [];
         for (const imgUrl of images) {
           if (!imgUrl) continue;
-          const idMatch = imgUrl.match(/([a-f0-9-]{36})\.(jpeg|jpg|png|webp)/);
+          const idMatch = imgUrl.match(
+            /([a-f0-9-]{36})\.(jpeg|jpg|png|webp)/
+          );
           if (idMatch && !photoIds.has(idMatch[1])) {
             photoIds.add(idMatch[1]);
             photoUrls.push(imgUrl);
           }
         }
       } catch {
-        // skip
+        // skip invalid JSON-LD
       }
     }
   }
 
-  console.log(`[PHOTO EXTRACT] Found ${photoUrls.length} unique listing photos`);
   return photoUrls;
 }
 
@@ -84,23 +142,18 @@ interface ScrapeResult {
 }
 
 async function scrapeAirbnb(url: string): Promise<ScrapeResult> {
-  // Clean URL - remove query params
   const cleanUrl = url.split("?")[0];
-
-  // Extract room ID
   const roomIdMatch = cleanUrl.match(/rooms\/(\d+)/);
   const roomId = roomIdMatch ? roomIdMatch[1] : null;
-
-  // Try multiple approaches to get listing data
   const errors: string[] = [];
 
-  // Approach 1: Fetch the Airbnb page directly with browser-like headers
+  // Approach 1: Fetch the Airbnb page directly
   try {
     const response = await fetch(cleanUrl, {
       headers: {
         "User-Agent":
           "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
-        "Accept":
+        Accept:
           "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
         "Accept-Language": "fr-FR,fr;q=0.9,en-US;q=0.8,en;q=0.7",
         "Accept-Encoding": "gzip, deflate, br",
@@ -116,17 +169,15 @@ async function scrapeAirbnb(url: string): Promise<ScrapeResult> {
 
     if (response.ok) {
       const html = await response.text();
-
-      // Extract data from various sources in the HTML
       const extractedData: string[] = [];
 
-      // 1. Look for JSON-LD structured data
+      // 1. JSON-LD structured data
       const jsonLdMatches = html.match(
         /<script type="application\/ld\+json">([\s\S]*?)<\/script>/g
       );
       if (jsonLdMatches) {
-        for (const match of jsonLdMatches) {
-          const jsonContent = match
+        for (const m of jsonLdMatches) {
+          const jsonContent = m
             .replace(/<script type="application\/ld\+json">/, "")
             .replace(/<\/script>/, "");
           try {
@@ -135,24 +186,26 @@ async function scrapeAirbnb(url: string): Promise<ScrapeResult> {
               "JSON-LD DATA:\n" + JSON.stringify(parsed, null, 2)
             );
           } catch {
-            // not valid JSON, skip
+            // skip
           }
         }
       }
 
-      // 2. Look for __NEXT_DATA__ or bootstrapData
+      // 2. __NEXT_DATA__
       const nextDataMatch = html.match(
         /<script id="__NEXT_DATA__"[^>]*>([\s\S]*?)<\/script>/
       );
       if (nextDataMatch) {
         try {
           const nextData = JSON.parse(nextDataMatch[1]);
-          // Extract relevant page props
           const pageProps = nextData?.props?.pageProps;
           if (pageProps) {
             extractedData.push(
               "NEXT_DATA (pageProps):\n" +
-                JSON.stringify(pageProps, null, 2).substring(0, 15000)
+                JSON.stringify(pageProps, null, 2).substring(
+                  0,
+                  MAX_DATA_BLOCK_LENGTH
+                )
             );
           }
         } catch {
@@ -160,13 +213,15 @@ async function scrapeAirbnb(url: string): Promise<ScrapeResult> {
         }
       }
 
-      // 3. Look for bootstrapped data (Airbnb specific)
+      // 3. Bootstrapped data (Airbnb specific)
       const bootstrapMatches = html.match(
         /<!--\s*(\{[\s\S]*?\})\s*-->/g
       );
       if (bootstrapMatches) {
-        for (const match of bootstrapMatches.slice(0, 3)) {
-          const content = match.replace(/<!--\s*/, "").replace(/\s*-->/, "");
+        for (const m of bootstrapMatches.slice(0, 3)) {
+          const content = m
+            .replace(/<!--\s*/, "")
+            .replace(/\s*-->/, "");
           try {
             const parsed = JSON.parse(content);
             if (
@@ -176,7 +231,10 @@ async function scrapeAirbnb(url: string): Promise<ScrapeResult> {
             ) {
               extractedData.push(
                 "BOOTSTRAP DATA:\n" +
-                  JSON.stringify(parsed, null, 2).substring(0, 15000)
+                  JSON.stringify(parsed, null, 2).substring(
+                    0,
+                    MAX_DATA_BLOCK_LENGTH
+                  )
               );
             }
           } catch {
@@ -185,20 +243,23 @@ async function scrapeAirbnb(url: string): Promise<ScrapeResult> {
         }
       }
 
-      // 4. Look for deferred data script tags
+      // 4. Deferred data script tags
       const deferredDataMatches = html.match(
         /<script[^>]*data-deferred-state[^>]*>([\s\S]*?)<\/script>/g
       );
       if (deferredDataMatches) {
-        for (const match of deferredDataMatches.slice(0, 3)) {
-          const content = match
+        for (const m of deferredDataMatches.slice(0, 3)) {
+          const content = m
             .replace(/<script[^>]*>/, "")
             .replace(/<\/script>/, "");
           try {
             const parsed = JSON.parse(content);
             extractedData.push(
               "DEFERRED STATE DATA:\n" +
-                JSON.stringify(parsed, null, 2).substring(0, 15000)
+                JSON.stringify(parsed, null, 2).substring(
+                  0,
+                  MAX_DATA_BLOCK_LENGTH
+                )
             );
           } catch {
             // skip
@@ -206,7 +267,7 @@ async function scrapeAirbnb(url: string): Promise<ScrapeResult> {
         }
       }
 
-      // 5. Extract meta tags
+      // 5. Meta tags
       const metaTags: string[] = [];
       const metaMatches = html.match(/<meta[^>]+>/g);
       if (metaMatches) {
@@ -223,14 +284,15 @@ async function scrapeAirbnb(url: string): Promise<ScrapeResult> {
         }
       }
 
-      // 6. Extract title
-      const titleMatch = html.match(/<title[^>]*>([\s\S]*?)<\/title>/);
+      // 6. Page title
+      const titleMatch = html.match(
+        /<title[^>]*>([\s\S]*?)<\/title>/
+      );
       if (titleMatch) {
         extractedData.push("PAGE TITLE: " + titleMatch[1].trim());
       }
 
-      // 7. Try to extract visible text content (descriptions, amenities)
-      // Remove scripts and styles, then get text
+      // 7. Visible text content
       const textContent = html
         .replace(/<script[\s\S]*?<\/script>/gi, "")
         .replace(/<style[\s\S]*?<\/style>/gi, "")
@@ -238,36 +300,31 @@ async function scrapeAirbnb(url: string): Promise<ScrapeResult> {
         .replace(/\s+/g, " ")
         .trim();
 
-      // Get meaningful text chunks (avoid very short ones)
       if (textContent.length > 100) {
         extractedData.push(
           "PAGE TEXT CONTENT (extrait):\n" +
-            textContent.substring(0, 8000)
+            textContent.substring(0, MAX_SCRAPE_TEXT_LENGTH)
         );
       }
 
       if (extractedData.length > 0) {
-        // Extract photos from the full HTML
         const photoUrls = extractPhotoUrls(html);
-
-        // The photo count is now reliable from extractPhotoUrls (deduplicated by UUID)
-        const realPhotoCount = photoUrls.length;
-        console.log(`[PHOTO COUNT] Final count: ${realPhotoCount}`);
-
         return {
           textContent: extractedData.join("\n\n---\n\n"),
           photoUrls,
-          totalPhotoCount: realPhotoCount,
+          totalPhotoCount: photoUrls.length,
         };
       }
     } else {
       errors.push(`Fetch direct: HTTP ${response.status}`);
     }
   } catch (e) {
-    errors.push(`Fetch direct: ${e instanceof Error ? e.message : "erreur"}`);
+    errors.push(
+      `Fetch direct: ${e instanceof Error ? e.message : "erreur inconnue"}`
+    );
   }
 
-  // Approach 2: Try Airbnb API endpoint if we have a room ID
+  // Approach 2: Try Airbnb API endpoint
   if (roomId) {
     try {
       const apiUrl = `https://www.airbnb.fr/api/v3/StaysPdpSections/${roomId}?operationName=StaysPdpSections&locale=fr&currency=EUR`;
@@ -275,8 +332,9 @@ async function scrapeAirbnb(url: string): Promise<ScrapeResult> {
         headers: {
           "User-Agent":
             "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
-          "Accept": "application/json",
-          "X-Airbnb-API-Key": "d306zoyjsyarp7ifhu67rjxn52tv0t20",
+          Accept: "application/json",
+          "X-Airbnb-API-Key":
+            process.env.AIRBNB_API_KEY || "d306zoyjsyarp7ifhu67rjxn52tv0t20",
         },
       });
 
@@ -285,7 +343,10 @@ async function scrapeAirbnb(url: string): Promise<ScrapeResult> {
         return {
           textContent:
             "AIRBNB API DATA:\n" +
-            JSON.stringify(apiData, null, 2).substring(0, 20000),
+            JSON.stringify(apiData, null, 2).substring(
+              0,
+              MAX_DATA_BLOCK_LENGTH * 2
+            ),
           photoUrls: [],
           totalPhotoCount: 0,
         };
@@ -294,12 +355,11 @@ async function scrapeAirbnb(url: string): Promise<ScrapeResult> {
       }
     } catch (e) {
       errors.push(
-        `API Airbnb: ${e instanceof Error ? e.message : "erreur"}`
+        `API Airbnb: ${e instanceof Error ? e.message : "erreur inconnue"}`
       );
     }
   }
 
-  // If all approaches failed, return what we know
   return {
     textContent: `ÉCHEC DU SCRAPING - Tentatives: ${errors.join("; ")}. Room ID: ${roomId || "non trouvé"}. URL: ${cleanUrl}`,
     photoUrls: [],
@@ -447,25 +507,10 @@ interface ContentBlock {
 
 /* ─── POST Handler ─── */
 export async function POST(request: NextRequest) {
-  /* --- CORS --- */
   const origin = request.headers.get("origin") || "";
-  const allowedOrigins = [
-    "https://www.votrephotographeimmo.com",
-    "https://votrephotographeimmo.com",
-  ];
-  const isDev = process.env.NODE_ENV === "development";
-  const corsOrigin =
-    isDev || allowedOrigins.some((o) => origin.startsWith(o))
-      ? origin
-      : allowedOrigins[0];
+  const corsHeaders = getCorsHeaders(origin);
 
-  const corsHeaders = {
-    "Access-Control-Allow-Origin": corsOrigin,
-    "Access-Control-Allow-Methods": "POST, OPTIONS",
-    "Access-Control-Allow-Headers": "Content-Type",
-  };
-
-  /* --- Rate limit --- */
+  /* Rate limit */
   const ip =
     request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
     request.headers.get("x-real-ip") ||
@@ -473,15 +518,12 @@ export async function POST(request: NextRequest) {
 
   if (isRateLimited(ip)) {
     return Response.json(
-      {
-        error:
-          "Trop de requêtes. Veuillez réessayer dans quelques minutes.",
-      },
+      { error: "Trop de requêtes. Veuillez réessayer dans quelques minutes." },
       { status: 429, headers: corsHeaders }
     );
   }
 
-  /* --- Validate body --- */
+  /* Validate body */
   let url: string;
   try {
     const body = await request.json();
@@ -503,7 +545,7 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  /* --- Check API key --- */
+  /* Check API key */
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) {
     return Response.json(
@@ -513,30 +555,14 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    /* --- Step 1: Scrape the Airbnb listing --- */
-    console.log("Scraping Airbnb listing:", url);
+    /* Step 1: Scrape */
     const { textContent: scrapedContent, photoUrls, totalPhotoCount } =
       await scrapeAirbnb(url);
-    console.log(
-      "Scraped content length:",
-      scrapedContent.length,
-      "chars,",
-      "Photos found:",
-      totalPhotoCount
-    );
-    console.log(
-      "Scraped content preview:",
-      scrapedContent.substring(0, 300)
-    );
 
-    /* --- Step 2: Build message content with up to 3 photos --- */
-    const MAX_PHOTOS = 3;
-    const photosToAnalyze = photoUrls.slice(0, MAX_PHOTOS);
-
-    // Build multimodal content array
+    /* Step 2: Build multimodal content with up to 3 photos */
+    const photosToAnalyze = photoUrls.slice(0, MAX_PHOTOS_TO_ANALYZE);
     const userContent: unknown[] = [];
 
-    // Add text first
     userContent.push({
       type: "text",
       text: `Voici les données extraites de l'annonce Airbnb (${url}).
@@ -548,7 +574,6 @@ Analyse les données ET les photos, puis produis le rapport d'audit JSON complet
 ${scrapedContent}`,
     });
 
-    // Add photos as image_url blocks
     for (let i = 0; i < photosToAnalyze.length; i++) {
       userContent.push({
         type: "text",
@@ -556,14 +581,11 @@ ${scrapedContent}`,
       });
       userContent.push({
         type: "image",
-        source: {
-          type: "url",
-          url: photosToAnalyze[i],
-        },
+        source: { type: "url", url: photosToAnalyze[i] },
       });
     }
 
-    /* --- Step 3: Send to Claude for analysis --- */
+    /* Step 3: Call Claude API */
     const response = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
       headers: {
@@ -572,21 +594,15 @@ ${scrapedContent}`,
         "anthropic-version": "2023-06-01",
       },
       body: JSON.stringify({
-        model: "claude-sonnet-4-20250514",
-        max_tokens: 16000,
+        model: ANTHROPIC_MODEL,
+        max_tokens: ANTHROPIC_MAX_TOKENS,
         system: SYSTEM_PROMPT,
-        messages: [
-          {
-            role: "user",
-            content: userContent,
-          },
-        ],
+        messages: [{ role: "user", content: userContent }],
       }),
     });
 
     if (!response.ok) {
-      const errText = await response.text();
-      console.error("Anthropic API error:", response.status, errText);
+      console.error("Anthropic API error:", response.status);
       return Response.json(
         {
           error: `Erreur API Anthropic (${response.status}). Réessayez dans quelques instants.`,
@@ -596,7 +612,6 @@ ${scrapedContent}`,
     }
 
     const data = await response.json();
-
     const textBlock = data.content?.find(
       (b: ContentBlock) => b.type === "text"
     );
@@ -607,47 +622,34 @@ ${scrapedContent}`,
       );
     }
 
-    /* Extract JSON from the response */
+    /* Extract and validate JSON */
     let jsonStr = textBlock.text.trim();
     const jsonMatch = jsonStr.match(/\{[\s\S]*\}/);
-    if (jsonMatch) {
-      jsonStr = jsonMatch[0];
-    }
+    if (jsonMatch) jsonStr = jsonMatch[0];
 
     try {
       const audit = JSON.parse(jsonStr);
-      /* Basic validation */
       if (
         !audit.listing_title ||
         !audit.categories ||
         audit.score_global === undefined
       ) {
         return Response.json(
-          {
-            error:
-              "Le rapport d'audit est incomplet. Veuillez réessayer.",
-          },
+          { error: "Le rapport d'audit est incomplet. Veuillez réessayer." },
           { status: 500, headers: corsHeaders }
         );
       }
       return Response.json(audit, { headers: corsHeaders });
     } catch {
-      console.error("JSON parse error:", jsonStr.substring(0, 500));
       return Response.json(
-        {
-          error:
-            "Erreur lors de l'analyse de la réponse. Veuillez réessayer.",
-        },
+        { error: "Erreur lors de l'analyse de la réponse. Veuillez réessayer." },
         { status: 500, headers: corsHeaders }
       );
     }
   } catch (err) {
     console.error("Unexpected error:", err);
     return Response.json(
-      {
-        error:
-          "Une erreur inattendue est survenue. Veuillez réessayer.",
-      },
+      { error: "Une erreur inattendue est survenue. Veuillez réessayer." },
       { status: 500, headers: corsHeaders }
     );
   }
@@ -656,22 +658,8 @@ ${scrapedContent}`,
 /* ─── OPTIONS (CORS preflight) ─── */
 export async function OPTIONS(request: NextRequest) {
   const origin = request.headers.get("origin") || "";
-  const allowedOrigins = [
-    "https://www.votrephotographeimmo.com",
-    "https://votrephotographeimmo.com",
-  ];
-  const isDev = process.env.NODE_ENV === "development";
-  const corsOrigin =
-    isDev || allowedOrigins.some((o) => origin.startsWith(o))
-      ? origin
-      : allowedOrigins[0];
-
   return new Response(null, {
     status: 204,
-    headers: {
-      "Access-Control-Allow-Origin": corsOrigin,
-      "Access-Control-Allow-Methods": "POST, OPTIONS",
-      "Access-Control-Allow-Headers": "Content-Type",
-    },
+    headers: getCorsHeaders(origin),
   });
 }
