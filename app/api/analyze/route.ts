@@ -276,10 +276,41 @@ async function scrapeAirbnb(url: string): Promise<ScrapeResult> {
       if (extractedData.length > 0) {
         // Extract photos from the full HTML
         const photoUrls = extractPhotoUrls(html);
+
+        // Try to get the REAL photo count from the page content
+        // Patterns: "1/37", "Afficher les 37 photos", "Show all 37 photos", "photo_id" counts in JSON
+        let realPhotoCount = photoUrls.length;
+
+        // Pattern 1: "Afficher les X photos" or "Show all X photos"
+        const showAllMatch = html.match(/(?:Afficher\s+les|Show\s+all)\s+(\d+)\s+photo/i);
+        if (showAllMatch) {
+          realPhotoCount = parseInt(showAllMatch[1], 10);
+        }
+
+        // Pattern 2: "1/37" pattern in photo navigation
+        const navMatch = html.match(/1\s*\/\s*(\d+)/);
+        if (navMatch && !showAllMatch) {
+          const count = parseInt(navMatch[1], 10);
+          if (count >= 5 && count <= 100) { // Sanity check
+            realPhotoCount = count;
+          }
+        }
+
+        // Pattern 3: count "photo" entries in JSON-LD
+        if (!showAllMatch && !navMatch) {
+          const photoArrayMatch = html.match(/"photo"\s*:\s*\[([\s\S]*?)\]/);
+          if (photoArrayMatch) {
+            const photoEntries = photoArrayMatch[1].match(/"@type"\s*:\s*"Photograph"/g);
+            if (photoEntries) {
+              realPhotoCount = photoEntries.length;
+            }
+          }
+        }
+
         return {
           textContent: extractedData.join("\n\n---\n\n"),
           photoUrls,
-          totalPhotoCount: photoUrls.length,
+          totalPhotoCount: realPhotoCount,
         };
       }
     } else {
