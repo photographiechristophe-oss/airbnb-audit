@@ -468,7 +468,7 @@ Structure JSON exacte requise:
       "suggestions": ["suggestion positive 1"]
     }
   ],
-  "recommandation_visuelle": "Un paragraphe chaleureux de 3-4 phrases, écrit à la première personne (je), personnalisé à cette annonce. Explique comment des photos professionnelles pourraient sublimer ce bien en particulier. Mentionne une statistique crédible (ex: les annonces avec photos pro reçoivent en moyenne 40% de réservations en plus). Termine par une invitation à échanger."
+  "recommandation_visuelle": "Un paragraphe chaleureux de 3-4 phrases, écrit à la première personne (je), personnalisé à cette annonce. SI les photos sont amateur : explique comment des photos professionnelles transformeraient cette annonce, avec une statistique (40% de réservations en plus). SI les photos sont DÉJÀ professionnelles : félicite et propose d'autres pistes d'amélioration visuelle (home staging, photos saisonnières, vidéo, visite virtuelle). Termine par une invitation à échanger."
 }
 
 GRILLE DE NOTATION DÉTAILLÉE:
@@ -480,12 +480,14 @@ COMMENT DISTINGUER AMATEUR vs PROFESSIONNEL :
 - AMATEUR/SMARTPHONE : pièces sombres (surtout chambres), lits/meubles coupés par le cadrage, angles de prise de vue étroits (pas de grand angle), distorsion de perspective, horizon penché, ombres portées du flash, couleurs jaunâtres ou bleutées, bruit/grain visible, reflets dans les miroirs/vitres, objets personnels visibles, photos prises debout (pas à hauteur de poitrine), pièces qui paraissent plus petites qu'en réalité
 - PROFESSIONNEL : grand angle maîtrisé (pièces paraissent spacieuses sans déformation excessive), lumière naturelle abondante et homogène, lignes parfaitement droites (verticales ET horizontales), colorimétrie neutre et chaude, mise en scène soignée, chaque pièce photographiée depuis le meilleur angle, HDR subtil pour équilibrer intérieur/extérieur
 
-RÈGLES STRICTES SUR LES PHOTOS :
-- Si les photos sont prises au smartphone, tu DOIS le dire explicitement dans le "detail" ET dans les "points_critiques". Utilise les mots "photos prises au smartphone" ou "photos amateur". Pas de formulation vague.
+RÈGLES SUR LE DIAGNOSTIC PHOTO — SOIS JUSTE ET PRÉCIS :
+- Analyse VRAIMENT les photos envoyées. Ne suppose PAS qu'elles sont amateur par défaut. Regarde les critères concrets : grand angle ? lignes droites ? lumière homogène ? Si OUI → c'est professionnel, dis-le !
+- SI les photos sont professionnelles : félicite sincèrement ("Vos photos sont d'excellente qualité, on sent le travail d'un professionnel"). Note élevée méritée (18-25/25). Ne recommande PAS de refaire les photos.
+- SI les photos sont amateur/smartphone : dis-le explicitement avec les mots "photos prises au smartphone" ou "photos amateur". Explique POURQUOI (pièces sombres, meubles coupés, pas de grand angle, etc.). Recommande un photographe professionnel et chiffre l'impact ("Des photos pro pourraient augmenter vos réservations de 40%").
+- SI c'est un MIX (certaines pro, certaines amateur) : identifie lesquelles sont bonnes et lesquelles à refaire.
 - Ne mets JAMAIS "semi-pro" par complaisance. En cas de doute entre deux niveaux, choisis le PLUS BAS.
-- Si les photos sont amateur/smartphone, NE DIS PAS que la couverture est "superbe" — c'est contradictoire. Dis "jolie" ou "plutôt réussie" au maximum.
-- Quand les photos sont au smartphone, RECOMMANDE TOUJOURS explicitement de faire appel à un photographe professionnel. Explique l'impact concret : "Des photos pro pourraient augmenter vos réservations de 40% et vous permettre d'augmenter votre tarif. C'est l'investissement le plus rentable pour votre annonce."
-- Dans les suggestions de la catégorie Photos, la première suggestion doit TOUJOURS être de faire un shooting professionnel si les photos sont amateur.
+- Si les photos sont amateur, NE DIS PAS que la couverture est "superbe" — c'est contradictoire.
+- Si les photos sont pro, NE DIS PAS qu'elles sont au smartphone — c'est faux et ça discrédite l'outil.
 
 Sous-critères :
 - Nombre total de photos (moins de 10 = à compléter, 10-25 = idéal, 26-35 = léger excès qui dilue l'impact, plus de 35 = trop de photos — les voyageurs se perdent, mieux vaut sélectionner les meilleures): /3
