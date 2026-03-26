@@ -22,34 +22,48 @@ function isRateLimited(ip: string): boolean {
 
 /* ─── Photo extraction ─── */
 function extractPhotoUrls(html: string): string[] {
-  const urls: string[] = [];
+  const photoIds = new Set<string>();
+  const photoUrls: string[] = [];
 
-  // 1. From JSON-LD (most reliable)
+  // Only extract LISTING photos (not Airbnb platform assets, favicons, icons, CSS, etc.)
+  // Listing photos match: /im/pictures/hosting/Hosting-XXX/original/UUID.jpeg
+  // Or: /im/pictures/UUID.jpg (older format)
+  const listingPhotoPattern = /https:\/\/a0\.muscache\.com\/im\/pictures\/(?:hosting\/Hosting-[^/]+\/original\/([a-f0-9-]{36})\.(?:jpeg|jpg|png|webp)|([a-f0-9-]{36})\.(?:jpeg|jpg|png|webp))/g;
+
+  let match;
+  while ((match = listingPhotoPattern.exec(html)) !== null) {
+    const photoId = match[1] || match[2];
+    if (photoId && !photoIds.has(photoId)) {
+      photoIds.add(photoId);
+      photoUrls.push(match[0]);
+    }
+  }
+
+  // Also check JSON-LD for photos
   const jsonLdMatches = html.match(
     /<script type="application\/ld\+json">([\s\S]*?)<\/script>/g
   );
   if (jsonLdMatches) {
-    for (const match of jsonLdMatches) {
-      const jsonContent = match
+    for (const jmatch of jsonLdMatches) {
+      const jsonContent = jmatch
         .replace(/<script type="application\/ld\+json">/, "")
         .replace(/<\/script>/, "");
       try {
         const parsed = JSON.parse(jsonContent);
-        // VacationRental has "photo" array
-        if (parsed.photo && Array.isArray(parsed.photo)) {
-          for (const p of parsed.photo) {
-            const imgUrl = p.contentUrl || p.url;
-            if (imgUrl) urls.push(imgUrl);
-          }
-        }
-        // Or "image" field
-        if (parsed.image) {
-          const images = Array.isArray(parsed.image)
-            ? parsed.image
-            : [parsed.image];
-          for (const img of images) {
-            const imgUrl = typeof img === "string" ? img : img.url || img.contentUrl;
-            if (imgUrl) urls.push(imgUrl);
+        const images = parsed.photo
+          ? parsed.photo.map((p: { contentUrl?: string; url?: string }) => p.contentUrl || p.url)
+          : parsed.image
+            ? (Array.isArray(parsed.image) ? parsed.image : [parsed.image]).map(
+                (img: string | { url?: string; contentUrl?: string }) =>
+                  typeof img === "string" ? img : img.url || img.contentUrl
+              )
+            : [];
+        for (const imgUrl of images) {
+          if (!imgUrl) continue;
+          const idMatch = imgUrl.match(/([a-f0-9-]{36})\.(jpeg|jpg|png|webp)/);
+          if (idMatch && !photoIds.has(idMatch[1])) {
+            photoIds.add(idMatch[1]);
+            photoUrls.push(imgUrl);
           }
         }
       } catch {
@@ -58,49 +72,8 @@ function extractPhotoUrls(html: string): string[] {
     }
   }
 
-  // 2. From og:image meta tags
-  const ogImageMatches = html.match(
-    /property="og:image"[^>]*content="([^"]+)"/g
-  );
-  if (ogImageMatches) {
-    for (const match of ogImageMatches) {
-      const urlMatch = match.match(/content="([^"]+)"/);
-      if (urlMatch && !urls.includes(urlMatch[1])) {
-        urls.push(urlMatch[1]);
-      }
-    }
-  }
-
-  // 3. From Airbnb image URLs in the HTML
-  const airbnbImgMatches = html.match(
-    /https:\/\/a0\.muscache\.com\/im\/pictures\/[^"'\s)]+/g
-  );
-  if (airbnbImgMatches) {
-    for (const imgUrl of airbnbImgMatches) {
-      // Avoid duplicates and tiny images
-      const cleanImgUrl = imgUrl.split("?")[0];
-      if (!urls.some((u) => u.includes(cleanImgUrl))) {
-        urls.push(imgUrl);
-      }
-    }
-  }
-
-  // Aggressive deduplication: normalize URLs to catch size variants and duplicates
-  const seen = new Set<string>();
-  return urls.filter((u) => {
-    // Remove query params
-    let key = u.split("?")[0];
-    // Remove size suffixes like /w_1200/ or _720x480 or im/pictures/hosting/ vs im/pictures/
-    key = key.replace(/\/w_\d+/, "").replace(/_\d+x\d+/, "");
-    // Extract just the unique image ID (the filename part)
-    const filenameMatch = key.match(/([a-f0-9-]{20,}|[^/]+\.(jpg|jpeg|png|webp))/i);
-    if (filenameMatch) {
-      key = filenameMatch[1].split(".")[0]; // Remove extension for comparison
-    }
-    if (seen.has(key)) return false;
-    seen.add(key);
-    return true;
-  });
+  console.log(`[PHOTO EXTRACT] Found ${photoUrls.length} unique listing photos`);
+  return photoUrls;
 }
 
 /* ─── Airbnb Scraper ─── */
@@ -277,35 +250,9 @@ async function scrapeAirbnb(url: string): Promise<ScrapeResult> {
         // Extract photos from the full HTML
         const photoUrls = extractPhotoUrls(html);
 
-        // Try to get the REAL photo count from the page content
-        // Patterns: "1/37", "Afficher les 37 photos", "Show all 37 photos", "photo_id" counts in JSON
-        let realPhotoCount = photoUrls.length;
-
-        // Pattern 1: "Afficher les X photos" or "Show all X photos"
-        const showAllMatch = html.match(/(?:Afficher\s+les|Show\s+all)\s+(\d+)\s+photo/i);
-        if (showAllMatch) {
-          realPhotoCount = parseInt(showAllMatch[1], 10);
-        }
-
-        // Pattern 2: "1/37" pattern in photo navigation
-        const navMatch = html.match(/1\s*\/\s*(\d+)/);
-        if (navMatch && !showAllMatch) {
-          const count = parseInt(navMatch[1], 10);
-          if (count >= 5 && count <= 100) { // Sanity check
-            realPhotoCount = count;
-          }
-        }
-
-        // Pattern 3: count "photo" entries in JSON-LD
-        if (!showAllMatch && !navMatch) {
-          const photoArrayMatch = html.match(/"photo"\s*:\s*\[([\s\S]*?)\]/);
-          if (photoArrayMatch) {
-            const photoEntries = photoArrayMatch[1].match(/"@type"\s*:\s*"Photograph"/g);
-            if (photoEntries) {
-              realPhotoCount = photoEntries.length;
-            }
-          }
-        }
+        // The photo count is now reliable from extractPhotoUrls (deduplicated by UUID)
+        const realPhotoCount = photoUrls.length;
+        console.log(`[PHOTO COUNT] Final count: ${realPhotoCount}`);
 
         return {
           textContent: extractedData.join("\n\n---\n\n"),
