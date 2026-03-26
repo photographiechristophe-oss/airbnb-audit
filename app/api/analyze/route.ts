@@ -476,15 +476,19 @@ GRILLE DE NOTATION DÉTAILLÉE:
 1. IMPACT VISUEL & PHOTOS (/25):
 Tu reçois 5 photos échantillonnées à travers la galerie.
 
-⚠️ ÉTAPE OBLIGATOIRE AVANT DE NOTER : REGARDE CHAQUE PHOTO ATTENTIVEMENT.
-Pour chaque photo, vérifie mentalement ces 4 points :
-1. Grand angle ou pas ? (les pièces paraissent spacieuses = grand angle pro / les pièces paraissent étroites = smartphone)
-2. Lignes droites ? (verticales et horizontales parfaitement droites = pro / horizon penché, murs tordus = smartphone)
-3. Lumière ? (lumière naturelle homogène, bien exposée = pro / zones sombres, flash, contre-jour = smartphone)
-4. Cadrage ? (meubles entièrement dans le cadre = pro / lit coupé, meuble tronqué = smartphone)
+⚠️ CRITIQUE — TU DOIS ANALYSER LES IMAGES, PAS DEVINER D'APRÈS LE TEXTE.
+Ne déduis JAMAIS la qualité photo du type de bien ou du texte de l'annonce. Un petit appartement simple peut avoir des photos PRO. Une villa de luxe peut avoir des photos SMARTPHONE. Seule l'IMAGE compte.
 
-Si 3 ou 4 critères sont remplis sur la majorité des photos → PROFESSIONNEL
-Si 0 à 2 critères sont remplis → AMATEUR/SMARTPHONE
+Pour chaque photo envoyée, vérifie ces 5 points VISUELS :
+1. GRAND ANGLE ? Les pièces paraissent spacieuses, on voit le sol et le plafond, champ de vision large = OUI (pro). Pièces qui paraissent étroites, champ réduit = NON (smartphone).
+2. LIGNES DROITES ? Verticales (murs, portes, fenêtres) et horizontales (plafond, meubles) parfaitement droites = OUI (pro). Lignes penchées, murs qui convergent = NON (smartphone).
+3. LUMIÈRE HOMOGÈNE ? Toute la pièce bien éclairée, pas de zones sombres, pas de surexposition aux fenêtres = OUI (pro). Zones sombres, flash visible, contre-jour = NON (smartphone).
+4. CADRAGE COMPLET ? Meubles entièrement visibles (lit, canapé, table pas coupés), composition pensée = OUI (pro). Meubles tronqués, cadrage approximatif = NON (smartphone).
+5. BALANCE DES BLANCS ? Les murs blancs apparaissent VRAIMENT blancs (pas jaunâtres, pas grisâtres, pas bleutés), couleurs fidèles et neutres = OUI (pro). Dominante jaune/orange ou bleue/grise = NON (smartphone).
+
+RÉSULTAT : 4-5 critères OUI sur la majorité des photos → PROFESSIONNEL (note 18-25/25)
+2-3 critères OUI → SEMI-PRO ou MIX (note 12-17/25)
+0-1 critère OUI → AMATEUR/SMARTPHONE (note 0-11/25)
 
 ENSUITE seulement, donne ton diagnostic :
 
@@ -627,7 +631,9 @@ export async function POST(request: NextRequest) {
       type: "text",
       text: `Voici les données extraites de l'annonce Airbnb (${url}).
 NOMBRE EXACT DE PHOTOS SUR L'ANNONCE : ${totalPhotoCount}. UTILISE STRICTEMENT CE CHIFFRE pour la notation, ne l'estime pas toi-même.
-${photosToAnalyze.length > 0 ? `Je t'envoie ${photosToAnalyze.length} photos échantillonnées à travers toute la galerie (couverture + photos réparties début/milieu/fin) pour avoir une vue représentative. Analyse-les avec un regard très exigeant.` : "Aucune photo n'a pu être extraite."}
+${photosToAnalyze.length > 0 ? `Je t'envoie ${photosToAnalyze.length} photos échantillonnées à travers toute la galerie (couverture + photos réparties début/milieu/fin).
+
+⚠️ IMPORTANT : Analyse VISUELLEMENT chaque photo ci-dessous AVANT de rédiger ton diagnostic photo. Applique la checklist des 5 points (grand angle, lignes droites, lumière, cadrage, balance des blancs) sur ce que tu VOIS dans les images. Ne déduis PAS la qualité des photos du texte de l'annonce ou du type de bien.` : "Aucune photo n'a pu être extraite."}
 
 Analyse les données ET les photos, puis produis le rapport d'audit JSON complet :
 
