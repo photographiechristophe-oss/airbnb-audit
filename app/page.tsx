@@ -73,7 +73,6 @@ export default function Home() {
         maxWidth: "600px",
         margin: "0 auto",
         padding: "0 20px",
-        minHeight: "100vh",
       }}
     >
       {/* Header */}

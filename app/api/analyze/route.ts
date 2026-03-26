@@ -480,8 +480,12 @@ COMMENT DISTINGUER AMATEUR vs PROFESSIONNEL :
 - AMATEUR/SMARTPHONE : pièces sombres (surtout chambres), lits/meubles coupés par le cadrage, angles de prise de vue étroits (pas de grand angle), distorsion de perspective, horizon penché, ombres portées du flash, couleurs jaunâtres ou bleutées, bruit/grain visible, reflets dans les miroirs/vitres, objets personnels visibles, photos prises debout (pas à hauteur de poitrine), pièces qui paraissent plus petites qu'en réalité
 - PROFESSIONNEL : grand angle maîtrisé (pièces paraissent spacieuses sans déformation excessive), lumière naturelle abondante et homogène, lignes parfaitement droites (verticales ET horizontales), colorimétrie neutre et chaude, mise en scène soignée, chaque pièce photographiée depuis le meilleur angle, HDR subtil pour équilibrer intérieur/extérieur
 
-Note honnêtement : si les photos sont clairement du smartphone, dis-le franchement mais avec respect. Ne mets PAS "semi-pro" par complaisance. En cas de doute entre deux niveaux, choisis le PLUS BAS.
-IMPORTANT SUR LA COHÉRENCE : si tu détectes que les photos sont globalement amateur/smartphone, NE DIS PAS que la photo de couverture est "superbe" ou "donne vraiment envie" — c'est contradictoire. Reste cohérent. Si la couverture est la moins pire du lot, dis simplement qu'elle est "jolie" ou "plutôt réussie" mais sans superlatif qui contredit ton diagnostic global.
+RÈGLES STRICTES SUR LES PHOTOS :
+- Si les photos sont prises au smartphone, tu DOIS le dire explicitement dans le "detail" ET dans les "points_critiques". Utilise les mots "photos prises au smartphone" ou "photos amateur". Pas de formulation vague.
+- Ne mets JAMAIS "semi-pro" par complaisance. En cas de doute entre deux niveaux, choisis le PLUS BAS.
+- Si les photos sont amateur/smartphone, NE DIS PAS que la couverture est "superbe" — c'est contradictoire. Dis "jolie" ou "plutôt réussie" au maximum.
+- Quand les photos sont au smartphone, RECOMMANDE TOUJOURS explicitement de faire appel à un photographe professionnel. Explique l'impact concret : "Des photos pro pourraient augmenter vos réservations de 40% et vous permettre d'augmenter votre tarif. C'est l'investissement le plus rentable pour votre annonce."
+- Dans les suggestions de la catégorie Photos, la première suggestion doit TOUJOURS être de faire un shooting professionnel si les photos sont amateur.
 
 Sous-critères :
 - Nombre total de photos (moins de 10 = à compléter, 10-25 = idéal, 26-35 = léger excès qui dilue l'impact, plus de 35 = trop de photos — les voyageurs se perdent, mieux vaut sélectionner les meilleures): /3

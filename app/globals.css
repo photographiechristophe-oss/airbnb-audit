@@ -26,8 +26,11 @@
   box-sizing: border-box;
 }
 
-html {
+html, body {
   scroll-behavior: smooth;
+  overflow-x: hidden;
+  height: auto;
+  min-height: 0;
 }
 
 body {
