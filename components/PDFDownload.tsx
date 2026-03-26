@@ -79,6 +79,69 @@ export default function PDFDownload({
         }
       };
 
+      // Helper: normalize accented characters + strip emojis for Helvetica
+      const norm = (text: string): string => {
+        return text
+          // Strip all emoji characters (Unicode emoji ranges)
+          .replace(/[\u{1F600}-\u{1F64F}]/gu, "")  // emoticons
+          .replace(/[\u{1F300}-\u{1F5FF}]/gu, "")  // misc symbols & pictographs
+          .replace(/[\u{1F680}-\u{1F6FF}]/gu, "")  // transport & map
+          .replace(/[\u{1F1E0}-\u{1F1FF}]/gu, "")  // flags
+          .replace(/[\u{2600}-\u{26FF}]/gu, "")     // misc symbols
+          .replace(/[\u{2700}-\u{27BF}]/gu, "")     // dingbats
+          .replace(/[\u{FE00}-\u{FE0F}]/gu, "")     // variation selectors
+          .replace(/[\u{200D}]/gu, "")               // zero width joiner
+          .replace(/[\u{20E3}]/gu, "")               // combining enclosing keycap
+          .replace(/[\u{E0020}-\u{E007F}]/gu, "")   // tags
+          .replace(/[\u{1F900}-\u{1F9FF}]/gu, "")   // supplemental symbols
+          .replace(/[\u{1FA00}-\u{1FA6F}]/gu, "")   // chess symbols
+          .replace(/[\u{1FA70}-\u{1FAFF}]/gu, "")   // symbols extended-A
+          .replace(/[\u{231A}-\u{231B}]/gu, "")     // watch, hourglass
+          .replace(/[\u{23E9}-\u{23F3}]/gu, "")     // misc technical
+          .replace(/[\u{23F8}-\u{23FA}]/gu, "")     // misc technical
+          .replace(/[\u{25AA}-\u{25AB}]/gu, "")     // squares
+          .replace(/[\u{25B6}]/gu, "")               // play button
+          .replace(/[\u{25C0}]/gu, "")               // reverse button
+          .replace(/[\u{25FB}-\u{25FE}]/gu, "")     // squares
+          .replace(/[\u{2934}-\u{2935}]/gu, "")     // arrows
+          .replace(/[\u{2B05}-\u{2B07}]/gu, "")     // arrows
+          .replace(/[\u{2B1B}-\u{2B1C}]/gu, "")     // squares
+          .replace(/[\u{2B50}]/gu, "")               // star
+          .replace(/[\u{2B55}]/gu, "")               // circle
+          .replace(/[\u{3030}]/gu, "")               // wavy dash
+          .replace(/[\u{303D}]/gu, "")               // part alternation mark
+          .replace(/[\u{3297}]/gu, "")               // circled ideograph congratulation
+          .replace(/[\u{3299}]/gu, "")               // circled ideograph secret
+          // Clean up extra spaces left by stripped emojis
+          .replace(/^\s+/, "")
+          .replace(/\s{2,}/g, " ")
+          // Smart quotes and dashes
+          .replace(/[\u2018\u2019]/g, "'")
+          .replace(/[\u201C\u201D]/g, '"')
+          .replace(/\u2026/g, "...")
+          .replace(/\u2013/g, "-")
+          .replace(/\u2014/g, "-")
+          // French accented characters
+          .replace(/é/g, "e").replace(/É/g, "E")
+          .replace(/è/g, "e").replace(/È/g, "E")
+          .replace(/ê/g, "e").replace(/Ê/g, "E")
+          .replace(/ë/g, "e").replace(/Ë/g, "E")
+          .replace(/à/g, "a").replace(/À/g, "A")
+          .replace(/â/g, "a").replace(/Â/g, "A")
+          .replace(/ä/g, "a").replace(/Ä/g, "A")
+          .replace(/ù/g, "u").replace(/Ù/g, "U")
+          .replace(/û/g, "u").replace(/Û/g, "U")
+          .replace(/ü/g, "u").replace(/Ü/g, "U")
+          .replace(/ô/g, "o").replace(/Ô/g, "O")
+          .replace(/ö/g, "o").replace(/Ö/g, "O")
+          .replace(/î/g, "i").replace(/Î/g, "I")
+          .replace(/ï/g, "i").replace(/Ï/g, "I")
+          .replace(/ç/g, "c").replace(/Ç/g, "C")
+          .replace(/ÿ/g, "y").replace(/Ÿ/g, "Y")
+          .replace(/œ/g, "oe").replace(/Œ/g, "OE")
+          .replace(/æ/g, "ae").replace(/Æ/g, "AE");
+      };
+
       // Helper: add wrapped text
       const addWrappedText = (
         text: string,
@@ -97,7 +160,7 @@ export default function PDFDownload({
         } else {
           pdf.setFont("helvetica", "normal");
         }
-        const lines = pdf.splitTextToSize(text, maxWidth);
+        const lines = pdf.splitTextToSize(norm(text), maxWidth);
         for (const line of lines) {
           checkPageBreak(fontSize * 0.5);
           pdf.text(line, x, y);
@@ -221,7 +284,7 @@ export default function PDFDownload({
           pdf.text("✓", margin + 2, y);
           pdf.setTextColor(26, 26, 26);
           const fLines = pdf.splitTextToSize(
-            auditData.points_forts[i],
+            norm(auditData.points_forts[i]),
             contentWidth / 2 - 12
           );
           for (const fl of fLines) {
@@ -236,7 +299,7 @@ export default function PDFDownload({
           pdf.text("✗", margin + contentWidth / 2 + 5, y);
           pdf.setTextColor(26, 26, 26);
           const cLines = pdf.splitTextToSize(
-            auditData.points_critiques[i],
+            norm(auditData.points_critiques[i]),
             contentWidth / 2 - 12
           );
           for (const cl of cLines) {
@@ -268,7 +331,7 @@ export default function PDFDownload({
         pdf.setFontSize(11);
         pdf.setFont("helvetica", "bold");
         pdf.setTextColor(26, 26, 26);
-        pdf.text(`${cat.icon} ${cat.name}`, margin, y);
+        pdf.text(norm(`${cat.icon} ${cat.name}`), margin, y);
 
         // Score badge
         pdf.setFontSize(10);
@@ -306,7 +369,7 @@ export default function PDFDownload({
           pdf.setTextColor(201, 154, 46);
           pdf.text("→", margin + 2, y);
           pdf.setTextColor(26, 26, 26);
-          const sLines = pdf.splitTextToSize(s, contentWidth - 8);
+          const sLines = pdf.splitTextToSize(norm(s), contentWidth - 8);
           for (const sl of sLines) {
             pdf.text(sl, margin + 7, y);
             y += 3.5;
@@ -331,7 +394,7 @@ export default function PDFDownload({
       pdf.setFont("helvetica", "normal");
       pdf.setTextColor(200, 200, 200);
       const ctaLines = pdf.splitTextToSize(
-        auditData.recommandation_visuelle,
+        norm(auditData.recommandation_visuelle),
         contentWidth - 10
       );
       for (const cl of ctaLines.slice(0, 4)) {
@@ -339,6 +402,26 @@ export default function PDFDownload({
         y += 3.5;
       }
       y += 8;
+
+      // --- Personal message ---
+      checkPageBreak(25);
+      y += 4;
+      pdf.setDrawColor(235, 186, 77);
+      pdf.setLineWidth(0.3);
+      pdf.line(margin + 20, y, pageWidth - margin - 20, y);
+      y += 8;
+      pdf.setFontSize(9);
+      pdf.setFont("helvetica", "italic");
+      pdf.setTextColor(42, 42, 42);
+      const personalMsg = pdf.splitTextToSize(
+        norm("Si vous souhaitez echanger plus sur le sujet ou demander un devis, n'hesitez pas a me consulter. Au plaisir, Christophe"),
+        contentWidth - 20
+      );
+      for (const line of personalMsg) {
+        pdf.text(line, pageWidth / 2, y, { align: "center" });
+        y += 4;
+      }
+      y += 6;
 
       // --- Footer ---
       checkPageBreak(10);
@@ -353,7 +436,7 @@ export default function PDFDownload({
       pdf.setFont("helvetica", "normal");
       pdf.setTextColor(160, 160, 160);
       pdf.text(
-        "Photographe professionnel en hotellerie & locations saisonnieres - Provence",
+        norm("Photographe professionnel en hotellerie & locations saisonnieres - Provence"),
         pageWidth / 2,
         y,
         { align: "center" }
