@@ -421,7 +421,14 @@ export default function PDFDownload({
         pdf.text(line, pageWidth / 2, y, { align: "center" });
         y += 4;
       }
-      y += 6;
+      y += 3;
+      pdf.setFontSize(9);
+      pdf.setFont("helvetica", "normal");
+      pdf.setTextColor(42, 42, 42);
+      pdf.text("Tel : 06-19-46-36-05", pageWidth / 2, y, { align: "center" });
+      y += 4;
+      pdf.text("Mail : photographiechristophe@gmail.com", pageWidth / 2, y, { align: "center" });
+      y += 8;
 
       // --- Footer ---
       checkPageBreak(10);
