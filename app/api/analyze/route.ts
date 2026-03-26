@@ -80,8 +80,25 @@ function extractPhotos(html: string): PhotoExtractionResult {
   const seen = new Set<string>();
   const analysisUrls: string[] = [];
 
+  // Patterns to EXCLUDE (Airbnb UI assets, not listing photos)
+  const EXCLUDED_PATTERNS = [
+    /AirbnbPlatformAssets/i,
+    /search-bar-icons/i,
+    /UserProfile/i,
+    /Favicons/i,
+    /Review-AI/i,
+    /icon/i,
+    /logo/i,
+    /avatar/i,
+  ];
+
+  const isListingPhoto = (url: string): boolean => {
+    return !EXCLUDED_PATTERNS.some((pattern) => pattern.test(url));
+  };
+
   const addUrl = (url: string) => {
     const clean = url.split("?")[0];
+    if (!isListingPhoto(clean)) return; // Skip Airbnb UI assets
     const key = clean.replace(/.*\//, "").replace(/\.(jpeg|jpg|png|webp)$/i, "");
     if (key && !seen.has(key)) {
       seen.add(key);
@@ -96,8 +113,24 @@ function extractPhotos(html: string): PhotoExtractionResult {
     pictureCount = parseInt(pcMatch[1], 10);
   }
 
-  // --- 2. Collect photo URLs for visual analysis ---
-  // 2a. JSON-LD photos
+  // --- 2. Extract room ID for targeted photo search ---
+  const roomIdMatch = html.match(/rooms\/(\d+)/);
+  const roomId = roomIdMatch ? roomIdMatch[1] : null;
+
+  // --- 3. Collect photo URLs for visual analysis ---
+  // 3a. Targeted: photos with Hosting-XXXXX pattern (most reliable)
+  if (roomId) {
+    const hostingPattern = new RegExp(
+      `https://a0\\.muscache\\.com/im/pictures/(?:airflow|hosting|miso|prohost-api)/Hosting-${roomId}/original/[^\\s"'<>]+?\\.(?:jpeg|jpg|png|webp)`,
+      "gi"
+    );
+    let match;
+    while ((match = hostingPattern.exec(html)) !== null) {
+      addUrl(match[0]);
+    }
+  }
+
+  // 3b. JSON-LD photos
   const jsonLdMatches = html.match(
     /<script type="application\/ld\+json">([\s\S]*?)<\/script>/g
   );
@@ -127,24 +160,28 @@ function extractPhotos(html: string): PhotoExtractionResult {
     }
   }
 
-  // 2b. Broad regex for muscache.com image URLs
-  const broadPattern =
-    /https:\/\/a0\.muscache\.com\/im\/(?:pictures|ml-photo-proc)\/[^\s"'<>]+?\.(?:jpeg|jpg|png|webp)/gi;
-  let match;
-  while ((match = broadPattern.exec(html)) !== null) {
-    addUrl(match[0]);
+  // 3c. Broad regex fallback (only if targeted search found nothing)
+  if (analysisUrls.length === 0) {
+    const broadPattern =
+      /https:\/\/a0\.muscache\.com\/im\/(?:pictures|ml-photo-proc)\/[^\s"'<>]+?\.(?:jpeg|jpg|png|webp)/gi;
+    let match;
+    while ((match = broadPattern.exec(html)) !== null) {
+      addUrl(match[0]);
+    }
   }
 
-  // 2c. Inline JSON fields (baseUrl, pictureUrl, etc.)
-  const jsonPhotoPattern =
-    /"(?:baseUrl|pictureUrl|picture)":\s*"(https:\/\/a0\.muscache\.com\/im\/[^\s"]+?\.(?:jpeg|jpg|png|webp))/gi;
-  while ((match = jsonPhotoPattern.exec(html)) !== null) {
-    addUrl(match[1]);
+  // 3d. Inline JSON fields
+  if (analysisUrls.length === 0) {
+    const jsonPhotoPattern =
+      /"(?:baseUrl|pictureUrl|picture)":\s*"(https:\/\/a0\.muscache\.com\/im\/[^\s"]+?\.(?:jpeg|jpg|png|webp))/gi;
+    let match;
+    while ((match = jsonPhotoPattern.exec(html)) !== null) {
+      addUrl(match[1]);
+    }
   }
 
   return {
     analysisUrls,
-    // Priority: pictureCount > URL count (pictureCount is always accurate)
     totalCount: pictureCount > 0 ? pictureCount : analysisUrls.length,
   };
 }
