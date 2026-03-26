@@ -85,10 +85,18 @@ function extractPhotoUrls(html: string): string[] {
     }
   }
 
-  // Deduplicate based on the path (ignoring query params/size)
+  // Aggressive deduplication: normalize URLs to catch size variants and duplicates
   const seen = new Set<string>();
   return urls.filter((u) => {
-    const key = u.split("?")[0].replace(/\/im\/pictures\//, "");
+    // Remove query params
+    let key = u.split("?")[0];
+    // Remove size suffixes like /w_1200/ or _720x480 or im/pictures/hosting/ vs im/pictures/
+    key = key.replace(/\/w_\d+/, "").replace(/_\d+x\d+/, "");
+    // Extract just the unique image ID (the filename part)
+    const filenameMatch = key.match(/([a-f0-9-]{20,}|[^/]+\.(jpg|jpeg|png|webp))/i);
+    if (filenameMatch) {
+      key = filenameMatch[1].split(".")[0]; // Remove extension for comparison
+    }
     if (seen.has(key)) return false;
     seen.add(key);
     return true;
@@ -554,7 +562,7 @@ export async function POST(request: NextRequest) {
     userContent.push({
       type: "text",
       text: `Voici les données extraites de l'annonce Airbnb (${url}).
-Nombre total de photos sur l'annonce : ${totalPhotoCount}.
+NOMBRE EXACT DE PHOTOS SUR L'ANNONCE : ${totalPhotoCount}. UTILISE STRICTEMENT CE CHIFFRE pour la notation, ne l'estime pas toi-même.
 ${photosToAnalyze.length > 0 ? `Je t'envoie les ${photosToAnalyze.length} premières photos pour analyse visuelle. Déduis la qualité globale des visuels à partir de cet échantillon.` : "Aucune photo n'a pu être extraite."}
 
 Analyse les données ET les photos, puis produis le rapport d'audit JSON complet :
