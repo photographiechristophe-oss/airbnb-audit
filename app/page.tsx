@@ -213,8 +213,6 @@ export default function Home() {
           <CTABlock
             recommandation={result.recommandation_visuelle}
             score={result.score_global}
-            pointsForts={result.points_forts}
-            pointsCritiques={result.points_critiques}
           />
 
           {/* PDF Download button */}

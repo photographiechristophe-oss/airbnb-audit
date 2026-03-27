@@ -3,22 +3,27 @@
 interface CTABlockProps {
   recommandation: string;
   score: number;
-  pointsForts: string[];
-  pointsCritiques: string[];
+}
+
+// Parse **bold** markdown into React elements
+function renderBoldText(text: string) {
+  const parts = text.split(/(\*\*[^*]+\*\*)/g);
+  return parts.map((part, i) => {
+    if (part.startsWith("**") && part.endsWith("**")) {
+      return (
+        <strong key={i} style={{ color: "#EBBA4D", fontWeight: 700 }}>
+          {part.slice(2, -2)}
+        </strong>
+      );
+    }
+    return part;
+  });
 }
 
 export default function CTABlock({
   recommandation,
   score,
-  pointsForts,
-  pointsCritiques,
 }: CTABlockProps) {
-  const getScoreColor = () => {
-    if (score >= 75) return "#4CAF50";
-    if (score >= 50) return "#EBBA4D";
-    return "#E74C3C";
-  };
-
   const getScoreLabel = () => {
     if (score >= 85) return "Excellente annonce !";
     if (score >= 75) return "Bonne annonce";
@@ -26,6 +31,12 @@ export default function CTABlock({
     if (score >= 40) return "Annonce à améliorer";
     return "Annonce à retravailler en profondeur";
   };
+
+  // Split recommandation into paragraphs by \n\n or \n
+  const paragraphs = recommandation
+    .split(/\n\n|\n/)
+    .map((p) => p.trim())
+    .filter((p) => p.length > 0);
 
   return (
     <div
@@ -100,145 +111,37 @@ export default function CTABlock({
         </p>
       </div>
 
-      {/* Bilan rapide */}
-      <div style={{ padding: "28px 32px 0 32px" }}>
-        {/* Points forts et critiques côte à côte */}
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "1fr 1fr",
-            gap: "20px",
-            marginBottom: "28px",
-          }}
-        >
-          {/* Points forts */}
-          <div>
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "8px",
-                marginBottom: "14px",
-              }}
-            >
-              <div
-                style={{
-                  width: "8px",
-                  height: "8px",
-                  borderRadius: "50%",
-                  backgroundColor: "#4CAF50",
-                }}
-              />
-              <span
-                style={{
-                  fontSize: "11px",
-                  fontWeight: 700,
-                  letterSpacing: "1.5px",
-                  textTransform: "uppercase",
-                  color: "#4CAF50",
-                }}
-              >
-                Points forts
-              </span>
-            </div>
-            {pointsForts.slice(0, 3).map((point, i) => (
-              <div
-                key={i}
-                style={{
-                  display: "flex",
-                  alignItems: "flex-start",
-                  gap: "8px",
-                  marginBottom: "10px",
-                }}
-              >
-                <span style={{ color: "#4CAF50", fontSize: "14px", flexShrink: 0, marginTop: "1px" }}>✓</span>
-                <span style={{ fontSize: "13px", color: "#B0B0B0", lineHeight: 1.5 }}>
-                  {point}
-                </span>
-              </div>
-            ))}
-          </div>
-
-          {/* Points critiques */}
-          <div>
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "8px",
-                marginBottom: "14px",
-              }}
-            >
-              <div
-                style={{
-                  width: "8px",
-                  height: "8px",
-                  borderRadius: "50%",
-                  backgroundColor: "#E74C3C",
-                }}
-              />
-              <span
-                style={{
-                  fontSize: "11px",
-                  fontWeight: 700,
-                  letterSpacing: "1.5px",
-                  textTransform: "uppercase",
-                  color: "#E74C3C",
-                }}
-              >
-                À améliorer
-              </span>
-            </div>
-            {pointsCritiques.slice(0, 3).map((point, i) => (
-              <div
-                key={i}
-                style={{
-                  display: "flex",
-                  alignItems: "flex-start",
-                  gap: "8px",
-                  marginBottom: "10px",
-                }}
-              >
-                <span style={{ color: "#E74C3C", fontSize: "14px", flexShrink: 0, marginTop: "1px" }}>✗</span>
-                <span style={{ fontSize: "13px", color: "#B0B0B0", lineHeight: 1.5 }}>
-                  {point}
-                </span>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Séparateur */}
-        <div
-          style={{
-            height: "1px",
-            background: "linear-gradient(90deg, transparent, rgba(235, 186, 77, 0.3), transparent)",
-            marginBottom: "24px",
-          }}
-        />
-
-        {/* Recommandation */}
-        <p
-          style={{
-            fontSize: "15px",
-            color: "#D4D4D4",
-            lineHeight: 1.8,
-            textAlign: "center",
-            marginBottom: "28px",
-            fontStyle: "italic",
-            maxWidth: "520px",
-            marginLeft: "auto",
-            marginRight: "auto",
-          }}
-        >
-          &ldquo;{recommandation}&rdquo;
-        </p>
+      {/* Texte de recommandation */}
+      <div style={{ padding: "32px 36px" }}>
+        {paragraphs.map((paragraph, i) => (
+          <p
+            key={i}
+            style={{
+              fontSize: "15px",
+              color: "#D4D4D4",
+              lineHeight: 1.9,
+              marginBottom: i < paragraphs.length - 1 ? "18px" : "0",
+              marginTop: 0,
+            }}
+          >
+            {renderBoldText(paragraph)}
+          </p>
+        ))}
       </div>
+
+      {/* Séparateur */}
+      <div
+        style={{
+          height: "1px",
+          background: "linear-gradient(90deg, transparent, rgba(235, 186, 77, 0.3), transparent)",
+          margin: "0 32px",
+        }}
+      />
 
       {/* CTA */}
       <div
         style={{
-          padding: "0 32px 32px 32px",
+          padding: "28px 32px 32px 32px",
           textAlign: "center",
         }}
       >
