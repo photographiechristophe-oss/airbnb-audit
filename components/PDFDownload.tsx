@@ -37,6 +37,7 @@ export default function PDFDownload({
   const [email, setEmail] = useState("");
   const [error, setError] = useState("");
   const [generating, setGenerating] = useState(false);
+  const [downloaded, setDownloaded] = useState(false);
 
   const handleDownload = async () => {
     setError("");
@@ -457,6 +458,7 @@ export default function PDFDownload({
         .substring(0, 50);
 
       pdf.save(`audit-airbnb-${safeTitle}.pdf`);
+      setDownloaded(true);
       setShowModal(false);
       setFirstName("");
       setEmail("");
@@ -498,6 +500,40 @@ export default function PDFDownload({
       >
         Télécharger le rapport PDF
       </button>
+
+      {downloaded && (
+        <div
+          style={{
+            marginTop: "12px",
+            padding: "14px 18px",
+            backgroundColor: "#F0FAF0",
+            border: "1px solid #27AE60",
+            borderRadius: "10px",
+            textAlign: "center",
+            fontFamily: "'Raleway', sans-serif",
+          }}
+        >
+          <p
+            style={{
+              margin: 0,
+              fontSize: "14px",
+              fontWeight: 600,
+              color: "#27AE60",
+            }}
+          >
+            ✅ Votre rapport PDF a bien été téléchargé !
+          </p>
+          <p
+            style={{
+              margin: "6px 0 0",
+              fontSize: "12px",
+              color: "#666",
+            }}
+          >
+            Consultez votre dossier <strong>Téléchargements</strong> pour retrouver le fichier.
+          </p>
+        </div>
+      )}
 
       {showModal && (
         <div
