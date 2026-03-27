@@ -210,7 +210,12 @@ export default function Home() {
             <CategoryCard key={cat.name} category={cat} index={i} />
           ))}
 
-          <CTABlock recommandation={result.recommandation_visuelle} />
+          <CTABlock
+            recommandation={result.recommandation_visuelle}
+            score={result.score_global}
+            pointsForts={result.points_forts}
+            pointsCritiques={result.points_critiques}
+          />
 
           {/* PDF Download button */}
           <PDFDownload
