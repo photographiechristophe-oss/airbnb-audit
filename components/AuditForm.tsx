@@ -52,7 +52,7 @@ export default function AuditForm({ onSubmit, loading }: AuditFormProps) {
       >
         <input
           type="text"
-          placeholder="https://www.airbnb.fr/rooms/..."
+          placeholder="Collez ici le lien de votre annonce Airbnb"
           value={url}
           onChange={(e) => {
             setUrl(e.target.value);
@@ -79,6 +79,17 @@ export default function AuditForm({ onSubmit, loading }: AuditFormProps) {
             if (!error) e.currentTarget.style.borderColor = "#E0E0E0";
           }}
         />
+        <p
+          style={{
+            color: "#999",
+            fontSize: "12px",
+            margin: "0",
+            lineHeight: "1.4",
+          }}
+        >
+          Ouvrez votre annonce sur Airbnb, copiez le lien depuis la barre d&apos;adresse
+          (il doit ressembler à : airbnb.fr/rooms/123456...)
+        </p>
         {error && (
           <p
             style={{
