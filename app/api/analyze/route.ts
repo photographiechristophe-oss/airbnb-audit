@@ -567,6 +567,8 @@ Pour chaque photo envoyée, vérifie ces 5 points VISUELS dans cet ordre PRÉCIS
 4. LUMIÈRE HOMOGÈNE ? Toute la pièce bien éclairée, pas de zones sombres, pas de surexposition aux fenêtres = PRO. Zones sombres, flash visible, contre-jour = SMARTPHONE.
 5. CADRAGE COMPLET ? Meubles entièrement visibles (lit, canapé, table pas coupés), composition pensée = PRO. Meubles tronqués, cadrage approximatif = SMARTPHONE.
 
+⚠️ ATTENTION AUX PHOTOS DE DÉTAILS : Certaines photos montrent volontairement un DÉTAIL (une lanterne, une arche, un objet déco, un élément architectural). Ce sont des CHOIX ARTISTIQUES de photographe pro, PAS un signe de smartphone. Un photographe pro mélange toujours des vues larges (pièces entières) ET des photos de détails/ambiance. Si tu vois des photos de détails avec une belle profondeur de champ, une lumière douce et une composition soignée, c'est PRO. Ne confonds PAS "cadrage serré volontaire" avec "champ de vision restreint de smartphone".
+
 RÉSULTAT : 4-5 critères PRO sur la majorité des photos → PROFESSIONNEL (note 18-25/25)
 2-3 critères PRO → SEMI-PRO ou MIX (note 12-17/25)
 0-1 critère PRO → AMATEUR/SMARTPHONE (note 0-11/25)
