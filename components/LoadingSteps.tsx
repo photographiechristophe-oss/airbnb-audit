@@ -94,6 +94,22 @@ export default function LoadingSteps() {
         />
       </div>
 
+      {/* Patience message when nearing the end */}
+      {progress > 75 && (
+        <p
+          style={{
+            textAlign: "center",
+            fontSize: "13px",
+            color: "#999",
+            margin: "0 0 12px 0",
+            fontStyle: "italic",
+            animation: "fadeSlideIn 0.5s ease-out",
+          }}
+        >
+          L&apos;analyse est en cours de finalisation, encore quelques secondes...
+        </p>
+      )}
+
       {/* Steps list */}
       <div
         style={{
