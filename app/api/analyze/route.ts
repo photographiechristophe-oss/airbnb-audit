@@ -152,13 +152,24 @@ function extractPhotos(html: string): PhotoExtractionResult {
 
   // --- 3. Collect photo URLs for visual analysis ---
   // 3a. Targeted: photos with Hosting-XXXXX pattern (most reliable)
+  // Airbnb uses two formats:
+  //   - Hosting-{numericRoomId} (classic)
+  //   - Hosting-{base64EncodedId} (newer, e.g. Hosting-U3RheVN1cH...==)
+  // We search for BOTH patterns
   if (roomId) {
+    // Pattern 1: numeric room ID (classic)
     const hostingPattern = new RegExp(
       `https://a0\\.muscache\\.com/im/pictures/(?:airflow|hosting|miso|prohost-api)/Hosting-${roomId}/original/[^\\s"'<>]+?\\.(?:jpeg|jpg|png|webp)`,
       "gi"
     );
     let match;
     while ((match = hostingPattern.exec(html)) !== null) {
+      addUrl(match[0]);
+    }
+
+    // Pattern 2: base64-encoded ID (newer Airbnb format)
+    const hostingBase64Pattern = /https:\/\/a0\.muscache\.com\/im\/pictures\/(?:airflow|hosting|miso|prohost-api)\/Hosting-[A-Za-z0-9+/]+=*\/original\/[^\s"'<>]+?\.(?:jpeg|jpg|png|webp)/gi;
+    while ((match = hostingBase64Pattern.exec(html)) !== null) {
       addUrl(match[0]);
     }
   }
