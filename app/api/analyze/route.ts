@@ -595,6 +595,14 @@ RÉSULTAT : 4-6 critères PRO sur la majorité des photos → PROFESSIONNEL (not
 
 RAPPEL : tu DOIS analyser les IMAGES que tu reçois. Les photos te sont envoyées en base64, tu les vois directement. Décris ce que tu VOIS (couleurs des murs, angles, lumière) pour justifier ton diagnostic.
 
+⚠️ BIAIS À ÉVITER ABSOLUMENT : Tu as une TENDANCE NATURELLE à dire "smartphone" trop facilement. AVANT de conclure "smartphone", vérifie que tu peux répondre OUI à au moins 3 de ces questions :
+- Les murs blancs tirent-ils VISIBLEMENT vers le jaune ou le gris ? (pas juste légèrement chauds)
+- Les meubles sont-ils COUPÉS par le cadre de manière non intentionnelle ?
+- Vois-tu du BRUIT/GRAIN visible dans les zones sombres ?
+- Les lignes verticales sont-elles CLAIREMENT penchées (pas juste un léger angle) ?
+- Le champ de vision est-il VRAIMENT étroit sur les photos d'intérieur (pas les détails) ?
+Si tu ne peux PAS répondre OUI à au moins 3 questions → ce n'est PAS du smartphone. En cas de DOUTE, la réponse est "semi-pro" ou "bonne application personnelle", JAMAIS "smartphone".
+
 ENSUITE seulement, donne ton diagnostic :
 
 - SI PROFESSIONNEL (4-5 critères OK) : Rester mesuré et honnête. Dire "On sent un vrai effort sur les photographies, que ce soit un travail professionnel ou une belle application personnelle — le résultat est là." NE PAS s'enflammer avec "remarquable", "exceptionnel", "irréprochable". Être positif mais sobre. Note élevée (18-25/25). Ne PAS recommander de refaire les photos. Suggérer plutôt des compléments légers : photos lifestyle, photos saisonnières, vidéo, ou renouvellement si la déco change.
