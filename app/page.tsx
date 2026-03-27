@@ -7,6 +7,7 @@ import ScoreGauge from "../components/ScoreGauge";
 import ResultCard from "../components/ResultCard";
 import CategoryCard from "../components/CategoryCard";
 import CTABlock from "../components/CTABlock";
+import PhotoImpactChart from "../components/PhotoImpactChart";
 import PDFDownload from "../components/PDFDownload";
 import Footer from "../components/Footer";
 
@@ -209,6 +210,16 @@ export default function Home() {
           {result.categories.map((cat, i) => (
             <CategoryCard key={cat.name} category={cat} index={i} />
           ))}
+
+          {/* Show photo impact chart only when photos are amateur/smartphone */}
+          {(() => {
+            const photoCat = result.categories.find(
+              (c) => c.name.toLowerCase().includes("photo") || c.name.toLowerCase().includes("visuel")
+            );
+            return photoCat && photoCat.score / photoCat.max <= 0.6 ? (
+              <PhotoImpactChart />
+            ) : null;
+          })()}
 
           <CTABlock
             recommandation={result.recommandation_visuelle}
