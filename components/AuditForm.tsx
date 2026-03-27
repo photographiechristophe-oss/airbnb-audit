@@ -11,21 +11,34 @@ export default function AuditForm({ onSubmit, loading }: AuditFormProps) {
   const [url, setUrl] = useState("");
   const [error, setError] = useState("");
 
+  const cleanAirbnbUrl = (raw: string): string => {
+    // Extract just the base Airbnb URL (rooms/ID) without tracking params
+    const match = raw.match(/(https?:\/\/(?:www\.)?airbnb\.[a-z.]+\/rooms\/\d+)/i);
+    return match ? match[1] : raw.split("?")[0];
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
 
-    if (!url.trim()) {
+    const trimmed = url.trim();
+    if (!trimmed) {
       setError("Veuillez coller le lien de votre annonce Airbnb.");
       return;
     }
 
-    if (!url.toLowerCase().includes("airbnb")) {
+    if (!trimmed.toLowerCase().includes("airbnb")) {
       setError("Le lien doit provenir d'Airbnb (contenir \"airbnb\" dans l'URL).");
       return;
     }
 
-    onSubmit(url.trim());
+    // Validate that URL contains a room ID
+    if (!/rooms\/\d+/.test(trimmed)) {
+      setError("Le lien ne semble pas contenir un identifiant d'annonce valide.");
+      return;
+    }
+
+    onSubmit(cleanAirbnbUrl(trimmed));
   };
 
   return (
@@ -38,7 +51,7 @@ export default function AuditForm({ onSubmit, loading }: AuditFormProps) {
         }}
       >
         <input
-          type="url"
+          type="text"
           placeholder="https://www.airbnb.fr/rooms/..."
           value={url}
           onChange={(e) => {
