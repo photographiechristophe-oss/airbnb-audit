@@ -232,12 +232,19 @@ async function scrapeAirbnb(url: string): Promise<ScrapeResult> {
   const roomId = roomIdMatch ? roomIdMatch[1] : null;
   const errors: string[] = [];
 
-  // Approach 1: Fetch the Airbnb page directly
+  // Multiple User-Agents to rotate on retry
+  const USER_AGENTS = [
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36",
+    "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1",
+  ];
+
+  // Approach 1: Fetch the Airbnb page directly (with retry on different User-Agents)
+  for (let attempt = 0; attempt < USER_AGENTS.length; attempt++) {
   try {
     const response = await fetch(cleanUrl, {
       headers: {
-        "User-Agent":
-          "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
+        "User-Agent": USER_AGENTS[attempt],
         Accept:
           "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
         "Accept-Language": "fr-FR,fr;q=0.9,en-US;q=0.8,en;q=0.7",
@@ -401,13 +408,16 @@ async function scrapeAirbnb(url: string): Promise<ScrapeResult> {
         };
       }
     } else {
-      errors.push(`Fetch direct: HTTP ${response.status}`);
+      errors.push(`Fetch direct (attempt ${attempt + 1}): HTTP ${response.status}`);
+      continue; // Try next User-Agent
     }
   } catch (e) {
     errors.push(
-      `Fetch direct: ${e instanceof Error ? e.message : "erreur inconnue"}`
+      `Fetch direct (attempt ${attempt + 1}): ${e instanceof Error ? e.message : "erreur inconnue"}`
     );
+    continue; // Try next User-Agent
   }
+  } // end for loop (User-Agent rotation)
 
   // Approach 2: Try Airbnb API endpoint
   if (roomId) {
@@ -691,6 +701,18 @@ export async function POST(request: NextRequest) {
     /* Step 1: Scrape */
     const { textContent: scrapedContent, photoUrls, totalPhotoCount } =
       await scrapeAirbnb(url);
+
+    /* Check if scraping actually succeeded */
+    if (scrapedContent.startsWith("ÉCHEC DU SCRAPING")) {
+      console.error("Scraping failed:", scrapedContent);
+      return Response.json(
+        {
+          error:
+            "Impossible d'accéder à cette annonce Airbnb pour le moment. Airbnb bloque parfois les requêtes depuis nos serveurs. Veuillez réessayer dans quelques minutes ou essayer avec un autre lien.",
+        },
+        { status: 503, headers: corsHeaders }
+      );
+    }
 
     /* Step 2: Build multimodal content with up to 3 photos */
     // Sample photos across the gallery: cover + evenly spaced picks
