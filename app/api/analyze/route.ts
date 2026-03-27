@@ -58,6 +58,39 @@ function isRateLimited(ip: string): boolean {
   return entry.count > RATE_LIMIT;
 }
 
+/* ─── Result Cache (24h) ─── */
+const CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
+const resultCache = new Map<string, { data: unknown; createdAt: number }>();
+
+function getCacheKey(url: string): string {
+  // Extract room ID as cache key (ignores query params, dates, etc.)
+  const match = url.match(/rooms\/(\d+)/);
+  return match ? match[1] : url.split("?")[0];
+}
+
+function getCachedResult(url: string): unknown | null {
+  const key = getCacheKey(url);
+  const entry = resultCache.get(key);
+  if (!entry) return null;
+  if (Date.now() - entry.createdAt > CACHE_TTL_MS) {
+    resultCache.delete(key);
+    return null;
+  }
+  return entry.data;
+}
+
+function setCachedResult(url: string, data: unknown): void {
+  const key = getCacheKey(url);
+  resultCache.set(key, { data, createdAt: Date.now() });
+  // Cleanup old entries if cache grows
+  if (resultCache.size > 200) {
+    const now = Date.now();
+    for (const [k, v] of resultCache) {
+      if (now - v.createdAt > CACHE_TTL_MS) resultCache.delete(k);
+    }
+  }
+}
+
 /* ─── Score color utility ─── */
 export function getScoreColor(percent: number): {
   color: string;
@@ -637,6 +670,13 @@ export async function POST(request: NextRequest) {
     );
   }
 
+  /* Check cache — return stored result if same listing analyzed < 24h ago */
+  const cached = getCachedResult(url);
+  if (cached) {
+    console.log(`[CACHE HIT] Returning cached result for ${getCacheKey(url)}`);
+    return Response.json(cached, { headers: corsHeaders });
+  }
+
   /* Check API key */
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) {
@@ -777,6 +817,9 @@ ${scrapedContent}`,
           { status: 500, headers: corsHeaders }
         );
       }
+      // Cache the successful result for 24h
+      setCachedResult(url, audit);
+      console.log(`[CACHE SET] Stored result for ${getCacheKey(url)}`);
       return Response.json(audit, { headers: corsHeaders });
     } catch {
       return Response.json(
