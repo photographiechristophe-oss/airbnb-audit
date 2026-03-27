@@ -606,8 +606,9 @@ Sous-critères :
 - Structure et lisibilité (paragraphes, pas un pavé): /3
 
 4. ÉQUIPEMENTS & SERVICES (/15):
+⚠️ IMPORTANT : Les équipements sont mentionnés PARTOUT dans l'annonce — dans la description, dans la liste des équipements Airbnb, ET dans les sections "Accès des voyageurs", "Autres remarques", etc. Lis TOUTE la page attentivement avant de juger. Si la description mentionne des équipements cuisine (frigo, gazinière, cafetière, etc.), des services (petit-déjeuner inclus, restauration), ou des aménagements (bain nordique, parking, clim), il faut les COMPTER dans ta notation.
 - Nombre d'équipements listés (plus est mieux): /4
-- Équipements premium (WiFi fibre, climatisation, piscine, parking privé): /4
+- Équipements premium (WiFi fibre, climatisation, piscine, parking privé, bain nordique, etc.): /4
 - Équipements cuisine complète: /3
 - Équipements famille/bébé/animaux/accessibilité: /4
 
