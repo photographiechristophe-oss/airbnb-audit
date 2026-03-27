@@ -261,6 +261,25 @@ export default function Home() {
             Analyser une autre annonce
           </button>
 
+          {/* Disclaimer IA */}
+          <p
+            style={{
+              fontSize: "11px",
+              color: "#999",
+              textAlign: "center",
+              lineHeight: "1.5",
+              marginTop: "16px",
+              fontFamily: "'Raleway', sans-serif",
+              fontStyle: "italic",
+            }}
+          >
+            Cette analyse est générée par l&apos;une des dernières IA les plus
+            performantes. Il se peut néanmoins qu&apos;elle fasse une erreur
+            d&apos;interprétation, notamment sur les photographies.
+            N&apos;hésitez pas à nous remonter l&apos;information si vous
+            constatez une incohérence.
+          </p>
+
           <Footer />
         </div>
       )}
