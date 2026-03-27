@@ -570,19 +570,28 @@ Tu reçois 5 photos échantillonnées à travers la galerie.
 ⚠️ CRITIQUE — TU DOIS ANALYSER LES IMAGES, PAS DEVINER D'APRÈS LE TEXTE.
 Ne déduis JAMAIS la qualité photo du type de bien ou du texte de l'annonce. Un petit appartement simple peut avoir des photos PRO. Une villa de luxe peut avoir des photos SMARTPHONE. Seule l'IMAGE compte.
 
-Pour chaque photo envoyée, vérifie ces 5 points VISUELS dans cet ordre PRÉCIS :
+Pour chaque photo envoyée, vérifie ces 6 points VISUELS dans cet ordre PRÉCIS :
 
 1. BALANCE DES BLANCS (critère n°1, le plus révélateur) ? Regarde les murs et plafonds : s'ils sont blancs, apparaissent-ils VRAIMENT blancs dans la photo ? Blancs purs et neutres = PROFESSIONNEL (seul un appareil calibré ou retouché produit des blancs neutres). Dominante jaunâtre, orangée, grisâtre ou bleutée sur les surfaces claires = SMARTPHONE.
 2. GRAND ANGLE ? Les pièces paraissent spacieuses, on voit le sol et le plafond, champ de vision large = PRO. Pièces qui paraissent étroites, champ réduit = SMARTPHONE.
 3. LIGNES DROITES ? Verticales (murs, portes, fenêtres) et horizontales (plafond, meubles) parfaitement droites = PRO. Lignes penchées, murs qui convergent = SMARTPHONE.
 4. LUMIÈRE HOMOGÈNE ? Toute la pièce bien éclairée, pas de zones sombres, pas de surexposition aux fenêtres = PRO. Zones sombres, flash visible, contre-jour = SMARTPHONE.
 5. CADRAGE COMPLET ? Meubles entièrement visibles (lit, canapé, table pas coupés), composition pensée = PRO. Meubles tronqués, cadrage approximatif = SMARTPHONE.
+6. BOKEH / PROFONDEUR DE CHAMP ? Si tu vois un arrière-plan FLOU avec un sujet NET au premier plan (effet bokeh), c'est un signe FORT de matériel professionnel. Les smartphones ne peuvent PAS produire un vrai bokeh optique avec cette qualité de flou progressif et naturel. Si une photo de détail montre un beau bokeh, c'est PRO — même si c'est un cadrage serré.
 
-⚠️ ATTENTION AUX PHOTOS DE DÉTAILS : Certaines photos montrent volontairement un DÉTAIL (une lanterne, une arche, un objet déco, un élément architectural). Ce sont des CHOIX ARTISTIQUES de photographe pro, PAS un signe de smartphone. Un photographe pro mélange toujours des vues larges (pièces entières) ET des photos de détails/ambiance. Si tu vois des photos de détails avec une belle profondeur de champ, une lumière douce et une composition soignée, c'est PRO. Ne confonds PAS "cadrage serré volontaire" avec "champ de vision restreint de smartphone".
+⚠️ ATTENTION AUX PHOTOS DE DÉTAILS ET LIFESTYLE : Certaines photos montrent volontairement un DÉTAIL (une lanterne, un vase, un objet déco, un élément architectural) ou une ambiance (vue depuis une fenêtre avec rideaux en cadre). Ce sont des CHOIX ARTISTIQUES de photographe pro, PAS un signe de smartphone. Un photographe pro mélange TOUJOURS :
+- Des vues larges grand angle (pièces entières)
+- Des photos de détails/ambiance (bokeh, mise en scène)
+- Des photos lifestyle (vue depuis le balcon, coin lecture, etc.)
+Si la majorité des photos de l'annonce montrent ce MIX de styles avec une qualité constante, c'est un FORT indicateur de travail professionnel. Ne confonds PAS "cadrage serré volontaire" avec "champ de vision restreint de smartphone".
 
-RÉSULTAT : 4-5 critères PRO sur la majorité des photos → PROFESSIONNEL (note 18-25/25)
+⚠️ ATTENTION AUX PHOTOS D'EXTÉRIEUR : Les photos de vues (montagne, mer, paysage) prises depuis un balcon ne permettent PAS de juger si c'est pro ou smartphone car il n'y a pas de murs, pas de meubles, pas de lignes intérieures à analyser. NE BASE PAS ton diagnostic sur ces photos seules. Concentre-toi sur les photos d'INTÉRIEUR pour évaluer la qualité technique.
+
+RÉSULTAT : 4-6 critères PRO sur la majorité des photos → PROFESSIONNEL (note 18-25/25)
 2-3 critères PRO → SEMI-PRO ou MIX (note 12-17/25)
 0-1 critère PRO → AMATEUR/SMARTPHONE (note 0-11/25)
+
+⚠️ RÈGLE D'OR : Si au moins 3 photos sur 5 montrent des signes PRO clairs (balance blancs OK, grand angle, lignes droites, bokeh), le verdict DOIT être PROFESSIONNEL, même si 1-2 photos sont des vues extérieures ou des détails ambigus.
 
 RAPPEL : tu DOIS analyser les IMAGES que tu reçois. Les photos te sont envoyées en base64, tu les vois directement. Décris ce que tu VOIS (couleurs des murs, angles, lumière) pour justifier ton diagnostic.
 
