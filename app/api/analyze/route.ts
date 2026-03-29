@@ -4,8 +4,8 @@ import { NextRequest } from "next/server";
 const RATE_LIMIT = 2;
 const RATE_WINDOW_MS = 2 * 60 * 60 * 1000; // 2 hours
 const MAX_PHOTOS_TO_ANALYZE = 5;
-const MAX_SCRAPE_TEXT_LENGTH = 8000;
-const MAX_DATA_BLOCK_LENGTH = 15000;
+const MAX_SCRAPE_TEXT_LENGTH = 15000;
+const MAX_DATA_BLOCK_LENGTH = 25000;
 const ANTHROPIC_MODEL = "claude-sonnet-4-20250514";
 const ANTHROPIC_MAX_TOKENS = 16000;
 
@@ -629,6 +629,7 @@ Sous-critères :
 - Différenciation et émotion (pas générique): /5
 
 3. DESCRIPTION & STORYTELLING (/20):
+⚠️ IMPORTANT : La description COMPLÈTE de l'annonce est dans les données fournies. Ne te base PAS uniquement sur les premières lignes. Lis TOUT le texte disponible avant de juger. Les propriétaires détaillent souvent les équipements, les accès, les environs dans la suite de la description (après "Le logement", "Accès des voyageurs", "Autres remarques"). Si ces informations sont présentes, la description est COMPLÈTE — ne dis pas qu'elle manque de détails.
 - Qualité rédactionnelle et orthographe: /4
 - Informations pratiques complètes (accès, parking, distance commerces): /5
 - Mise en avant des atouts uniques du bien: /4
