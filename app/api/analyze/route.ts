@@ -499,6 +499,37 @@ async function scrapeAirbnb(url: string): Promise<ScrapeResult> {
         extractedData.push("PAGE TITLE: " + titleMatch[1].trim());
       }
 
+      // 6b. Extract FULL description from htmlDescription field
+      // This contains the complete "Lire la suite" text that is often truncated in other fields
+      const htmlDescMatch = html.match(/"htmlDescription":\s*\{[^}]*"htmlText"\s*:\s*"((?:[^"\\]|\\.)*)"/);
+      if (htmlDescMatch) {
+        const fullDesc = htmlDescMatch[1]
+          .replace(/\\u003c[^>]*>/g, " ")  // Remove HTML tags like <br />, <b>, etc.
+          .replace(/\\n/g, "\n")
+          .replace(/\\"/g, '"')
+          .replace(/\s+/g, " ")
+          .trim();
+        if (fullDesc.length > 100) {
+          extractedData.push("DESCRIPTION COMPLÈTE DE L'ANNONCE (texte intégral incluant 'Lire la suite'):\n" + fullDesc);
+        }
+      }
+
+      // 6c. Extract "Accès des voyageurs" and "Autres remarques" sections
+      const guestAccessMatch = html.match(/"localizedGuestAccess"\s*:\s*"((?:[^"\\]|\\.)*)"/);
+      if (guestAccessMatch) {
+        const accessText = guestAccessMatch[1].replace(/\\n/g, "\n").replace(/\\"/g, '"').trim();
+        if (accessText.length > 10) {
+          extractedData.push("ACCÈS DES VOYAGEURS:\n" + accessText);
+        }
+      }
+      const otherNotesMatch = html.match(/"localizedInteractionWithGuests"\s*:\s*"((?:[^"\\]|\\.)*)"/);
+      if (otherNotesMatch) {
+        const notesText = otherNotesMatch[1].replace(/\\n/g, "\n").replace(/\\"/g, '"').trim();
+        if (notesText.length > 10) {
+          extractedData.push("AUTRES REMARQUES:\n" + notesText);
+        }
+      }
+
       // 7. Visible text content
       const textContent = html
         .replace(/<script[\s\S]*?<\/script>/gi, "")
