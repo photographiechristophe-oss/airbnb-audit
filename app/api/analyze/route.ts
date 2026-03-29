@@ -8,6 +8,8 @@ const MAX_SCRAPE_TEXT_LENGTH = 15000;
 const MAX_DATA_BLOCK_LENGTH = 25000;
 const ANTHROPIC_MODEL = "claude-sonnet-4-20250514";
 const ANTHROPIC_MAX_TOKENS = 16000;
+const GEMINI_MODEL = "gemini-2.5-pro";
+const GEMINI_API_URL = "https://generativelanguage.googleapis.com/v1beta";
 
 /* ─── CORS ─── */
 const ALLOWED_ORIGINS = [
@@ -107,6 +109,108 @@ interface PhotoExtractionResult {
   analysisUrls: string[];
   /** Authoritative photo count from Airbnb's pictureCount field */
   totalCount: number;
+}
+
+/* ─── Gemini Photo Analysis ─── */
+const GEMINI_PHOTO_PROMPT = `Tu es un expert en photographie immobilière avec 15 ans d'expérience. Analyse ces photos de location saisonnière.
+
+Pour CHAQUE photo, évalue ces critères techniques :
+1. GRAND ANGLE : Le champ de vision est-il large (objectif 10-16mm) ou restreint (smartphone) ?
+2. LIGNES DROITES : Les verticales (murs, portes, fenêtres) sont-elles droites ou penchées/déformées ?
+3. BALANCE DES BLANCS : Les murs blancs apparaissent-ils vraiment blancs, ou tirent-ils vers le jaune/gris ?
+4. LUMINOSITÉ : La lumière est-elle homogène et naturelle, ou y a-t-il des zones sombres/surexposées ?
+5. CADRAGE : Les meubles sont-ils complets dans le cadre ou coupés ? La composition est-elle soignée ?
+6. BOKEH/PROFONDEUR : Y a-t-il un flou d'arrière-plan maîtrisé (objectif pro) ou tout est net (smartphone) ?
+7. HDR/EXPOSITION : Les fenêtres et zones sombres sont-elles bien gérées simultanément ?
+
+IMPORTANT :
+- Les photos de DÉTAILS (objets déco, nourriture, textures) avec bokeh sont un CHOIX ARTISTIQUE professionnel, pas du smartphone.
+- Les photos EXTÉRIEURES en plein soleil sont plus difficiles à juger — sois prudent.
+- Les photos DRONE sont toujours professionnelles.
+- Si tu vois un grand angle ET des lignes droites ET une bonne balance des blancs → c'est PRO, point final.
+
+Réponds en JSON STRICT (pas de markdown, pas de backticks) :
+{
+  "verdict_global": "professionnel" | "semi-pro" | "amateur/smartphone" | "mix",
+  "photos": [
+    {
+      "index": 1,
+      "verdict": "professionnel" | "semi-pro" | "amateur/smartphone",
+      "raisons": "explication courte en français"
+    }
+  ],
+  "resume": "Résumé en 2-3 phrases de la qualité photographique globale, en français. Sois factuel et précis.",
+  "defauts_identifies": ["liste des défauts concrets observés, si pertinent"],
+  "recommandation": "conseil principal en une phrase"
+}`;
+
+async function analyzePhotosWithGemini(
+  photoUrls: string[],
+  totalCount: number
+): Promise<{ verdict: string; analysis: string } | null> {
+  const geminiKey = process.env.GEMINI_API_KEY;
+  if (!geminiKey) return null;
+
+  try {
+    // Download photos and convert to base64 for Gemini
+    const photoParts: Array<{ text: string } | { inlineData: { mimeType: string; data: string } }> = [];
+    photoParts.push({ text: GEMINI_PHOTO_PROMPT + `\n\nIl y a ${totalCount} photos au total sur l'annonce. J'en envoie ${photoUrls.length} échantillonnées.` });
+
+    for (let i = 0; i < photoUrls.length; i++) {
+      try {
+        const res = await fetch(photoUrls[i], {
+          headers: { "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36" },
+        });
+        if (!res.ok) continue;
+        const buffer = await res.arrayBuffer();
+        const base64 = Buffer.from(buffer).toString("base64");
+        const mimeType = (res.headers.get("content-type") || "image/jpeg").split(";")[0];
+        photoParts.push({ text: `\n--- Photo ${i + 1}/${photoUrls.length} ---` });
+        photoParts.push({ inlineData: { mimeType, data: base64 } });
+      } catch {
+        // Skip failed photos
+      }
+    }
+
+    if (photoParts.length < 3) return null; // Need at least 1 photo
+
+    const response = await fetch(
+      `${GEMINI_API_URL}/models/${GEMINI_MODEL}:generateContent?key=${geminiKey}`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          contents: [{ parts: photoParts }],
+          generationConfig: {
+            temperature: 0.3,
+            maxOutputTokens: 2000,
+          },
+        }),
+      }
+    );
+
+    if (!response.ok) {
+      console.error("Gemini API error:", response.status);
+      return null;
+    }
+
+    const data = await response.json();
+    const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+    if (!text) return null;
+
+    // Extract JSON from response
+    const jsonMatch = text.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) return { verdict: "unknown", analysis: text };
+
+    const parsed = JSON.parse(jsonMatch[0]);
+    return {
+      verdict: parsed.verdict_global || "unknown",
+      analysis: JSON.stringify(parsed),
+    };
+  } catch (err) {
+    console.error("Gemini analysis failed:", err);
+    return null;
+  }
 }
 
 function extractPhotos(html: string): PhotoExtractionResult {
@@ -746,9 +850,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    /* Step 2: Build multimodal content with up to 3 photos */
-    // Sample photos across the gallery: cover + evenly spaced picks
-    // This ensures we see exterior (start), rooms/bedrooms (middle), and amenities (end)
+    /* Step 2: Sample photos + Gemini analysis */
     const photosToAnalyze: string[] = [];
     if (photoUrls.length > 0) {
       photosToAnalyze.push(photoUrls[0]); // Always include cover photo
@@ -760,11 +862,45 @@ export async function POST(request: NextRequest) {
         }
       }
     }
+
+    // Try Gemini for photo analysis (better at vision), fallback to Claude
+    let geminiPhotoVerdict: string | null = null;
+    let usedGemini = false;
+    if (photosToAnalyze.length > 0) {
+      console.log("Calling Gemini for photo analysis...");
+      const geminiResult = await analyzePhotosWithGemini(photosToAnalyze, totalPhotoCount);
+      if (geminiResult) {
+        geminiPhotoVerdict = geminiResult.analysis;
+        usedGemini = true;
+        console.log("Gemini photo verdict:", geminiResult.verdict);
+      } else {
+        console.log("Gemini unavailable, falling back to Claude for photos");
+      }
+    }
+
     const userContent: unknown[] = [];
 
-    userContent.push({
-      type: "text",
-      text: `Voici les données extraites de l'annonce Airbnb (${url}).
+    if (usedGemini && geminiPhotoVerdict) {
+      // Gemini analyzed photos → send only text + Gemini verdict to Claude (no photos = faster + cheaper)
+      userContent.push({
+        type: "text",
+        text: `Voici les données extraites de l'annonce Airbnb (${url}).
+NOMBRE EXACT DE PHOTOS SUR L'ANNONCE : ${totalPhotoCount}. UTILISE STRICTEMENT CE CHIFFRE pour la notation, ne l'estime pas toi-même.
+
+📸 ANALYSE PHOTO PAR EXPERT VISION (Gemini) — FAIS CONFIANCE À CE DIAGNOSTIC :
+${geminiPhotoVerdict}
+
+⚠️ IMPORTANT : L'analyse photo ci-dessus a été réalisée par un modèle expert en vision artificielle qui a analysé ${photosToAnalyze.length} photos de l'annonce. BASE-TOI SUR CE DIAGNOSTIC pour la catégorie "Impact Visuel & Photos". Ne contredis PAS ce verdict. Si le verdict dit "professionnel", la note photo doit être élevée (18-25/25). Si "amateur/smartphone", la note doit être basse (5-12/25). Si "mix", note intermédiaire (12-17/25).
+
+Analyse les données texte et produis le rapport d'audit JSON complet :
+
+${scrapedContent}`,
+      });
+    } else {
+      // Fallback: send photos directly to Claude
+      userContent.push({
+        type: "text",
+        text: `Voici les données extraites de l'annonce Airbnb (${url}).
 NOMBRE EXACT DE PHOTOS SUR L'ANNONCE : ${totalPhotoCount}. UTILISE STRICTEMENT CE CHIFFRE pour la notation, ne l'estime pas toi-même.
 ${photosToAnalyze.length > 0 ? `Je t'envoie ${photosToAnalyze.length} photos échantillonnées à travers toute la galerie (couverture + photos réparties début/milieu/fin).
 
@@ -773,48 +909,47 @@ ${photosToAnalyze.length > 0 ? `Je t'envoie ${photosToAnalyze.length} photos éc
 Analyse les données ET les photos, puis produis le rapport d'audit JSON complet :
 
 ${scrapedContent}`,
-    });
-
-    for (let i = 0; i < photosToAnalyze.length; i++) {
-      const photoIndex = photoUrls.indexOf(photosToAnalyze[i]) + 1;
-      const label = i === 0
-        ? `Photo ${photoIndex}/${totalPhotoCount} (couverture)`
-        : `Photo ${photoIndex}/${totalPhotoCount}`;
-      userContent.push({
-        type: "text",
-        text: `\n--- ${label} ---`,
       });
 
-      // Download photo and send as base64 to guarantee Claude sees it
-      try {
-        const photoRes = await fetch(photosToAnalyze[i], {
-          headers: { "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36" },
+      // Send photos as base64 to Claude (fallback)
+      for (let i = 0; i < photosToAnalyze.length; i++) {
+        const photoIndex = photoUrls.indexOf(photosToAnalyze[i]) + 1;
+        const label = i === 0
+          ? `Photo ${photoIndex}/${totalPhotoCount} (couverture)`
+          : `Photo ${photoIndex}/${totalPhotoCount}`;
+        userContent.push({
+          type: "text",
+          text: `\n--- ${label} ---`,
         });
-        if (photoRes.ok) {
-          const buffer = await photoRes.arrayBuffer();
-          const base64 = Buffer.from(buffer).toString("base64");
-          const contentType = photoRes.headers.get("content-type") || "image/jpeg";
-          userContent.push({
-            type: "image",
-            source: {
-              type: "base64",
-              media_type: contentType.split(";")[0],
-              data: base64,
-            },
+
+        try {
+          const photoRes = await fetch(photosToAnalyze[i], {
+            headers: { "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36" },
           });
-        } else {
-          // Fallback to URL if download fails
+          if (photoRes.ok) {
+            const buffer = await photoRes.arrayBuffer();
+            const base64 = Buffer.from(buffer).toString("base64");
+            const contentType = photoRes.headers.get("content-type") || "image/jpeg";
+            userContent.push({
+              type: "image",
+              source: {
+                type: "base64",
+                media_type: contentType.split(";")[0],
+                data: base64,
+              },
+            });
+          } else {
+            userContent.push({
+              type: "image",
+              source: { type: "url", url: photosToAnalyze[i] },
+            });
+          }
+        } catch {
           userContent.push({
             type: "image",
             source: { type: "url", url: photosToAnalyze[i] },
           });
         }
-      } catch {
-        // Fallback to URL
-        userContent.push({
-          type: "image",
-          source: { type: "url", url: photosToAnalyze[i] },
-        });
       }
     }
 
