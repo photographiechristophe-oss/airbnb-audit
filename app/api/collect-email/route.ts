@@ -9,7 +9,7 @@ const ALLOWED_ORIGINS = [
 function getCorsHeaders(origin: string): Record<string, string> {
   const isDev = process.env.NODE_ENV === "development";
   const corsOrigin =
-    isDev || ALLOWED_ORIGINS.some((o) => origin.startsWith(o))
+    isDev || ALLOWED_ORIGINS.includes(origin)
       ? origin
       : ALLOWED_ORIGINS[0];
   return {
@@ -19,10 +19,31 @@ function getCorsHeaders(origin: string): Record<string, string> {
   };
 }
 
+/* ─── Rate Limiting (5 req / hour per IP) ─── */
+const emailRateMap = new Map<string, { count: number; resetAt: number }>();
+const EMAIL_RATE_LIMIT = 5;
+const EMAIL_RATE_WINDOW_MS = 60 * 60 * 1000; // 1 hour
+
 /* ─── POST: Collect email before PDF download ─── */
 export async function POST(request: NextRequest) {
   const origin = request.headers.get("origin") || "";
   const corsHeaders = getCorsHeaders(origin);
+
+  // Rate limiting
+  const ip = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
+  const now = Date.now();
+  const entry = emailRateMap.get(ip);
+  if (entry && now < entry.resetAt) {
+    if (entry.count >= EMAIL_RATE_LIMIT) {
+      return Response.json(
+        { error: "Trop de requêtes. Réessayez plus tard." },
+        { status: 429, headers: corsHeaders }
+      );
+    }
+    entry.count++;
+  } else {
+    emailRateMap.set(ip, { count: 1, resetAt: now + EMAIL_RATE_WINDOW_MS });
+  }
 
   let email: string;
   let firstName: string;
@@ -30,9 +51,9 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = await request.json();
-    email = body.email;
-    firstName = body.firstName || "";
-    listingTitle = body.listingTitle || "";
+    email = String(body.email || "").slice(0, 254);
+    firstName = String(body.firstName || "").slice(0, 100);
+    listingTitle = String(body.listingTitle || "").slice(0, 500);
   } catch {
     return Response.json(
       { error: "Requête invalide." },
@@ -40,16 +61,17 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+  if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) {
     return Response.json(
       { error: "Email invalide." },
       { status: 400, headers: corsHeaders }
     );
   }
 
-  // Log the lead server-side (always available, even without Brevo)
+  // Log the lead server-side (masked for privacy)
+  const maskedEmail = email.replace(/(.{2}).*(@.*)/, "$1***$2");
   console.log(
-    `[LEAD] ${new Date().toISOString()} | ${firstName} | ${email} | Annonce: ${listingTitle}`
+    `[LEAD] ${new Date().toISOString()} | ${firstName} | ${maskedEmail} | Annonce: ${listingTitle}`
   );
 
   // Send to Brevo if configured

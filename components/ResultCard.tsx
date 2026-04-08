@@ -1,5 +1,7 @@
 "use client";
 
+import { useState, useEffect } from "react";
+
 interface ResultCardProps {
   pointsForts: string[];
   pointsCritiques: string[];
@@ -9,11 +11,20 @@ export default function ResultCard({
   pointsForts,
   pointsCritiques,
 }: ResultCardProps) {
+  const [isSmall, setIsSmall] = useState(false);
+
+  useEffect(() => {
+    const check = () => setIsSmall(window.innerWidth < 600);
+    check();
+    window.addEventListener("resize", check);
+    return () => window.removeEventListener("resize", check);
+  }, []);
+
   return (
     <div
       style={{
-        display: "grid",
-        gridTemplateColumns: "1fr 1fr",
+        display: "flex",
+        flexDirection: isSmall ? "column" : "row",
         gap: "16px",
         animation: "fadeSlideIn 0.6s ease-out 0.2s both",
       }}
@@ -21,6 +32,7 @@ export default function ResultCard({
       {/* Points forts */}
       <div
         style={{
+          flex: 1,
           backgroundColor: "#E8F5EE",
           borderRadius: "12px",
           padding: "20px",
@@ -71,6 +83,7 @@ export default function ResultCard({
       {/* Points critiques */}
       <div
         style={{
+          flex: 1,
           backgroundColor: "#FDECEC",
           borderRadius: "12px",
           padding: "20px",

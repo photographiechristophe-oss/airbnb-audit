@@ -62,3 +62,10 @@ body {
   50% { opacity: 0.5; }
 }
 
+/* Responsive mobile */
+@media (max-width: 600px) {
+  .points-grid-responsive {
+    grid-template-columns: 1fr !important;
+  }
+}
+
