@@ -38,6 +38,7 @@ export default function PDFDownload({
   const [error, setError] = useState("");
   const [generating, setGenerating] = useState(false);
   const [downloaded, setDownloaded] = useState(false);
+  const [consent, setConsent] = useState(false);
 
   const handleDownload = async () => {
     setError("");
@@ -48,6 +49,10 @@ export default function PDFDownload({
     }
     if (!email.trim() || !email.includes("@") || !email.includes(".")) {
       setError("Veuillez indiquer un email valide.");
+      return;
+    }
+    if (!consent) {
+      setError("Veuillez accepter la politique de confidentialité.");
       return;
     }
 
@@ -666,9 +671,45 @@ export default function PDFDownload({
                 </p>
               )}
 
+              <label
+                style={{
+                  display: "flex",
+                  alignItems: "flex-start",
+                  gap: "8px",
+                  fontSize: "11px",
+                  color: "#6B6B6B",
+                  lineHeight: 1.4,
+                  cursor: "pointer",
+                }}
+              >
+                <input
+                  type="checkbox"
+                  checked={consent}
+                  onChange={(e) => setConsent(e.target.checked)}
+                  style={{
+                    marginTop: "2px",
+                    accentColor: "#EBBA4D",
+                    minWidth: "16px",
+                    minHeight: "16px",
+                  }}
+                />
+                <span>
+                  J&apos;accepte que mes données soient utilisées pour recevoir mon rapport
+                  et des conseils personnalisés.{" "}
+                  <a
+                    href="https://www.votrephotographeimmo.com/politique-de-confidentialite"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{ color: "#EBBA4D", textDecoration: "underline" }}
+                  >
+                    Politique de confidentialité
+                  </a>
+                </span>
+              </label>
+
               <button
                 onClick={handleDownload}
-                disabled={generating}
+                disabled={generating || !consent}
                 style={{
                   width: "100%",
                   padding: "14px",
@@ -723,7 +764,8 @@ export default function PDFDownload({
                 lineHeight: 1.4,
               }}
             >
-              Vos données restent confidentielles. Pas de spam, promis.
+              Vos données sont traitées par votrephotographeimmo.com uniquement.
+              Vous pouvez demander leur suppression à tout moment par email.
             </p>
           </div>
         </div>
