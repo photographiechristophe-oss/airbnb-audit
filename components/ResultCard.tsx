@@ -13,7 +13,7 @@ export default function ResultCard({
     <div
       style={{
         display: "flex",
-        flexWrap: "wrap" as const,
+        flexDirection: "column",
         gap: "16px",
         animation: "fadeSlideIn 0.6s ease-out 0.2s both",
       }}
@@ -21,8 +21,6 @@ export default function ResultCard({
       {/* Points forts */}
       <div
         style={{
-          flex: "1 1 280px",
-          minWidth: "280px",
           backgroundColor: "#E8F5EE",
           borderRadius: "12px",
           padding: "20px",
@@ -73,8 +71,6 @@ export default function ResultCard({
       {/* Points critiques */}
       <div
         style={{
-          flex: "1 1 280px",
-          minWidth: "280px",
           backgroundColor: "#FDECEC",
           borderRadius: "12px",
           padding: "20px",
