@@ -16,7 +16,7 @@ const nextConfig: NextConfig = {
           {
             key: "Content-Security-Policy",
             value:
-              "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https://a0.muscache.com https://a1.muscache.com https://a2.muscache.com https://images.airbnb.com; connect-src 'self' https://generativelanguage.googleapis.com https://api.anthropic.com https://api.brevo.com; frame-ancestors https://www.votrephotographeimmo.com https://votrephotographeimmo.com https://*.wix.com https://*.wixsite.com https://*.wixstudio.io https://*.editorx.io https://*.parastorage.com https://*.wixapps.net",
+              "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https://a0.muscache.com https://a1.muscache.com https://a2.muscache.com https://images.airbnb.com; connect-src 'self' https://generativelanguage.googleapis.com https://api.anthropic.com https://api.brevo.com",
           },
         ],
       },
