@@ -697,7 +697,7 @@ export default function PDFDownload({
                   J&apos;accepte que mes données soient utilisées pour recevoir mon rapport
                   et des conseils personnalisés.{" "}
                   <a
-                    href="https://www.votrephotographeimmo.com/politique-de-confidentialite"
+                    href="/politique-de-confidentialite"
                     target="_blank"
                     rel="noopener noreferrer"
                     style={{ color: "#EBBA4D", textDecoration: "underline" }}
