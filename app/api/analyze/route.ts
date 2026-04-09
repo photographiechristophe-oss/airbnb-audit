@@ -1,4 +1,5 @@
 import { NextRequest } from "next/server";
+import { logToSheet } from "../../lib/google-sheets";
 
 /* ─── Constants ─── */
 const RATE_LIMIT = 2;
@@ -1127,6 +1128,17 @@ ${sanitizedContent}`,
       // Cache the successful result for 24h
       setCachedResult(url, audit);
       console.log(`[CACHE SET] Stored result for ${getCacheKey(url)}`);
+
+      // Log to Google Sheets (fire-and-forget, doesn't block response)
+      logToSheet({
+        date: new Date().toISOString(),
+        url,
+        score: audit.score_global,
+        verdict: audit.verdict,
+        ville: audit.location || "",
+        typeBien: audit.property_type || "",
+      }).catch((err) => console.error("[SHEETS LOG]", err));
+
       return Response.json(audit, { headers: corsHeaders });
     } catch {
       return Response.json(

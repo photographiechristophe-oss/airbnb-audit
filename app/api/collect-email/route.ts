@@ -1,4 +1,5 @@
 import { NextRequest } from "next/server";
+import { logToSheet } from "../../lib/google-sheets";
 
 /* ─── CORS ─── */
 const ALLOWED_ORIGINS = [
@@ -96,6 +97,17 @@ export async function POST(request: NextRequest) {
       console.error("Brevo API error:", e);
     }
   }
+
+  // Log email to Google Sheets (update existing row or add new)
+  logToSheet({
+    date: new Date().toISOString(),
+    url: listingTitle,
+    score: 0,
+    verdict: "EMAIL COLLECTE",
+    ville: "",
+    typeBien: "",
+    email,
+  }).catch((err) => console.error("[SHEETS EMAIL LOG]", err));
 
   return Response.json({ success: true }, { headers: corsHeaders });
 }
